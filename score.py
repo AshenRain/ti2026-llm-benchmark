@@ -15,8 +15,8 @@ import argparse
 import csv
 import json
 import math
-import re
 import statistics
+from collections import defaultdict
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -234,20 +234,37 @@ def uniform_baseline() -> dict:
     return {team: {"swiss": dict(swiss), "p_champion": 1 / len(TEAMS)} for team in TEAMS}
 
 
-def bookmaker_baseline(odds_path: Path) -> dict:
-    """Champion probabilities from odds.csv: 1/decimal_odds, normalized to
-    remove overround. Returns {} if odds.csv has no populated rows yet."""
-    raw = {}
+def bookmaker_baselines(odds_path: Path) -> dict:
+    """Champion probabilities from odds.csv, grouped by the `bookmaker`
+    column and normalized independently within each group (1/decimal_odds,
+    divided by that group's own total to remove its own overround).
+
+    Sources are kept separate rather than merged into one number: they can
+    carry very different overround, and disagreement between them is a
+    finding, not noise to average away (see CLAUDE.md).
+
+    Returns {source: {team: {"swiss": None, "p_champion": float}}}. A
+    source's "swiss" is always None -- bookmaker/market odds only price the
+    outright champion market, so these baselines are N/A for bucket-level
+    metrics (multiclass Brier/log loss, advance Brier) and participate only
+    in champion-level scoring. Returns {} if odds.csv has no populated rows
+    yet."""
+    by_source: dict[str, dict[str, float]] = defaultdict(dict)
     with odds_path.open(newline="", encoding="utf-8") as f:
         for row in csv.DictReader(f):
             odds_str = (row.get("decimal_odds") or "").strip()
             if not odds_str:
                 continue
-            raw[row["team"]] = 1.0 / float(odds_str)
-    if not raw:
-        return {}
-    total = sum(raw.values())
-    return {team: implied / total for team, implied in raw.items()}
+            by_source[row["bookmaker"]][row["team"]] = 1.0 / float(odds_str)
+
+    baselines = {}
+    for source, implied in by_source.items():
+        total = sum(implied.values())
+        baselines[source] = {
+            team: {"swiss": None, "p_champion": p / total}
+            for team, p in implied.items()
+        }
+    return baselines
 
 
 def ensemble_baseline(runs: list[ParsedRun]) -> dict:
@@ -305,45 +322,64 @@ def load_champion(results_path: Path) -> str | None:
     return None
 
 
-def multiclass_brier(predictions: dict, results: dict) -> float:
+def multiclass_brier(predictions: dict, results: dict):
+    """Mean multiclass Brier score over the six Swiss buckets. Returns None
+    (not 0, not silently omitted) if this entrant has no bucket-level data
+    at all -- e.g. a bookmaker/market baseline that only prices champion."""
     scores = []
     for team, bucket in results.items():
-        if team not in predictions:
+        info = predictions.get(team)
+        if info is None or info.get("swiss") is None:
             continue
-        probs = predictions[team]["swiss"]
+        probs = info["swiss"]
+        if any(math.isnan(v) for v in probs.values()):
+            continue
         scores.append(sum((probs[b] - (1.0 if b == bucket else 0.0)) ** 2 for b in BUCKETS))
-    return statistics.fmean(scores) if scores else math.nan
+    return statistics.fmean(scores) if scores else None
 
 
-def multiclass_logloss(predictions: dict, results: dict, eps: float = 1e-15) -> float:
+def multiclass_logloss(predictions: dict, results: dict, eps: float = 1e-15):
     scores = []
     for team, bucket in results.items():
-        if team not in predictions:
+        info = predictions.get(team)
+        if info is None or info.get("swiss") is None:
             continue
-        p = min(max(predictions[team]["swiss"][bucket], eps), 1 - eps)
+        p_raw = info["swiss"].get(bucket)
+        if p_raw is None or math.isnan(p_raw):
+            continue
+        p = min(max(p_raw, eps), 1 - eps)
         scores.append(-math.log(p))
-    return statistics.fmean(scores) if scores else math.nan
+    return statistics.fmean(scores) if scores else None
 
 
-def binary_advance_brier(predictions: dict, results: dict) -> float:
+def binary_advance_brier(predictions: dict, results: dict):
+    """Returns None for entrants with no bucket-level data (see
+    multiclass_brier) -- advancing is derived from the swiss buckets."""
     scores = []
     for team, bucket in results.items():
-        if team not in predictions:
+        info = predictions.get(team)
+        if info is None or info.get("swiss") is None:
             continue
-        p_advance = sum(predictions[team]["swiss"][b] for b in ADVANCE_BUCKETS)
+        swiss = info["swiss"]
+        if any(math.isnan(swiss[b]) for b in ADVANCE_BUCKETS):
+            continue
+        p_advance = sum(swiss[b] for b in ADVANCE_BUCKETS)
         actual = 1.0 if bucket in ADVANCE_BUCKETS else 0.0
         scores.append((p_advance - actual) ** 2)
-    return statistics.fmean(scores) if scores else math.nan
+    return statistics.fmean(scores) if scores else None
 
 
-def champion_brier(predictions: dict, champion: str) -> float:
+def champion_brier(predictions: dict, champion: str):
     if champion is None:
-        return math.nan
+        return None
     scores = []
     for team, info in predictions.items():
+        p = info.get("p_champion")
+        if p is None or math.isnan(p):
+            continue
         actual = 1.0 if team == champion else 0.0
-        scores.append((info["p_champion"] - actual) ** 2)
-    return statistics.fmean(scores) if scores else math.nan
+        scores.append((p - actual) ** 2)
+    return statistics.fmean(scores) if scores else None
 
 
 def reliability_bins(pairs: list, bin_size: float = 0.1) -> list:
@@ -422,14 +458,21 @@ def main() -> None:
         return
     champion = load_champion(args.results)
 
-    for run in runs:
-        if not run.ok:
-            continue
-        print(f"\n{run.path}")
-        print(f"  multiclass Brier: {multiclass_brier(run.teams, results):.4f}")
-        print(f"  multiclass log loss: {multiclass_logloss(run.teams, results):.4f}")
-        print(f"  advance Brier: {binary_advance_brier(run.teams, results):.4f}")
-        print(f"  champion Brier: {champion_brier(run.teams, champion):.4f}")
+    entrants = {f"model {run.model} run {run.run_id}": run.teams for run in runs if run.ok}
+    entrants["baseline: uniform"] = uniform_baseline()
+    entrants["baseline: ensemble"] = ensemble_baseline(runs)
+    for source, teams in bookmaker_baselines(args.odds).items():
+        entrants[f"baseline: bookmaker ({source})"] = teams
+
+    def fmt(x):
+        return "N/A" if x is None else f"{x:.4f}"
+
+    for label, teams in entrants.items():
+        print(f"\n{label}")
+        print(f"  multiclass Brier: {fmt(multiclass_brier(teams, results))}")
+        print(f"  multiclass log loss: {fmt(multiclass_logloss(teams, results))}")
+        print(f"  advance Brier: {fmt(binary_advance_brier(teams, results))}")
+        print(f"  champion Brier: {fmt(champion_brier(teams, champion))}")
 
 
 if __name__ == "__main__":

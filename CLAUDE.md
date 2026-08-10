@@ -27,6 +27,8 @@ These were settled deliberately. Do not reopen them without asking.
 - **Bucket constraints are stated explicitly in the prompt.** Valve publishes them in the client, so hiding them would make the task ambiguous. This turns coherence into an instruction-following test with an unambiguous pass/fail.
 - **Three runs per model, each in a fresh chat.** Chat interfaces give no temperature control; a new chat is how we get an independent sample. Runs from ChatGPT were produced by a third party on their own account — settings there are not controlled, and this is a stated limitation.
 - **Web search is allowed for every model.** DeepSeek is run twice: strong model without search, light model with search. That contrast is a secondary result, not a confound to eliminate.
+- **Multiple odds sources in `odds.csv` are scored separately, never merged.** Each value in the `bookmaker` column (e.g. `esportbet_aggregate`, `polymarket`) is normalised within its own group and scored as its own baseline entrant, alongside the models, uniform, and ensemble. Overround differs a lot between sources — averaging before normalising would let the highest-margin source distort the rest, and averaging after normalising would quietly erase disagreement between sources that is itself worth reporting.
+- **Bookmaker/market baselines are champion-only.** Odds sources price the outright winner, not the six Swiss buckets, so they have no bucket-level distribution. They participate only in champion-level metrics (champion Brier, champion log loss); bucket-level metrics (multiclass Brier/log loss, advance Brier) are `N/A` for them by design, not 0. The uniform baseline is the only baseline scored on bucket-level metrics alongside the models and the ensemble. `score.py` must report this `N/A` explicitly — never substitute a default value or drop the row silently.
 
 ## Swiss format
 
@@ -59,7 +61,7 @@ Each model returns a 16×6 matrix plus a champion column. Rows sum to 1. Columns
 - Between-model differences plotted against the within-model spread. If the gap sits inside the noise floor, say so plainly — that is the honest finding, not a failure
 
 **Baselines, all mandatory:**
-- Bookmaker odds from `odds.csv`, converted with 1/odds and normalised to remove overround
+- Bookmaker odds from `odds.csv`, converted with 1/odds and normalised to remove overround. Each source in the `bookmaker` column is its own entrant (see Design decisions) and is champion-only — `N/A` on bucket-level metrics
 - Uniform: 0.5 to advance, 1/16 to win
 - Ensemble: mean across all models, scored as its own entrant
 

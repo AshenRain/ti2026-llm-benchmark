@@ -1,17 +1,33 @@
 team,bookmaker,decimal_odds,implied_prob_raw,implied_prob_normalized,captured_at,source
-Team Yandex,,,,,,
-BoomBoys,,,,,,
-Team Falcons,,,,,,
-Team Liquid,,,,,,
-1win Team,,,,,,
-Xtreme Gaming,,,,,,
-Aurora Gaming,,,,,,
-Team Vision,,,,,,
-Team Spirit,,,,,,
-Nigma Galaxy,,,,,,
-HULIGANI,,,,,,
-Vici Gaming,,,,,,
-Team Resilience,,,,,,
-OG,,,,,,
-GamerLegion,,,,,,
-LGD Gaming,,,,,,
+Team Vision,esportbet_aggregate,4.50,,,2026-08-10T14:00+02:00,https://esportbet.com/dota-2/the-international/
+Team Spirit,esportbet_aggregate,5.00,,,2026-08-10T14:00+02:00,https://esportbet.com/dota-2/the-international/
+Team Yandex,esportbet_aggregate,6.00,,,2026-08-10T14:00+02:00,https://esportbet.com/dota-2/the-international/
+1win Team,esportbet_aggregate,7.00,,,2026-08-10T14:00+02:00,https://esportbet.com/dota-2/the-international/
+Team Falcons,esportbet_aggregate,9.00,,,2026-08-10T14:00+02:00,https://esportbet.com/dota-2/the-international/
+BoomBoys,esportbet_aggregate,10.00,,,2026-08-10T14:00+02:00,https://esportbet.com/dota-2/the-international/
+Nigma Galaxy,esportbet_aggregate,11.00,,,2026-08-10T14:00+02:00,https://esportbet.com/dota-2/the-international/
+LGD Gaming,esportbet_aggregate,12.00,,,2026-08-10T14:00+02:00,https://esportbet.com/dota-2/the-international/
+Xtreme Gaming,esportbet_aggregate,14.00,,,2026-08-10T14:00+02:00,https://esportbet.com/dota-2/the-international/
+Aurora Gaming,esportbet_aggregate,15.00,,,2026-08-10T14:00+02:00,https://esportbet.com/dota-2/the-international/
+Team Liquid,esportbet_aggregate,17.00,,,2026-08-10T14:00+02:00,https://esportbet.com/dota-2/the-international/
+HULIGANI,esportbet_aggregate,18.00,,,2026-08-10T14:00+02:00,https://esportbet.com/dota-2/the-international/
+OG,esportbet_aggregate,18.00,,,2026-08-10T14:00+02:00,https://esportbet.com/dota-2/the-international/
+Vici Gaming,esportbet_aggregate,26.00,,,2026-08-10T14:00+02:00,https://esportbet.com/dota-2/the-international/
+Team Resilience,esportbet_aggregate,29.00,,,2026-08-10T14:00+02:00,https://esportbet.com/dota-2/the-international/
+GamerLegion,esportbet_aggregate,31.00,,,2026-08-10T14:00+02:00,https://esportbet.com/dota-2/the-international/
+Team Vision,polymarket,4.35,0.230,,2026-08-10T14:00+02:00,https://polymarket.com/event/the-international-2026-winner-20260629212545745
+Team Yandex,polymarket,4.35,0.230,,2026-08-10T14:00+02:00,https://polymarket.com/event/the-international-2026-winner-20260629212545745
+Team Falcons,polymarket,10.00,0.100,,2026-08-10T14:00+02:00,https://polymarket.com/event/the-international-2026-winner-20260629212545745
+Team Spirit,polymarket,11.11,0.090,,2026-08-10T14:00+02:00,https://polymarket.com/event/the-international-2026-winner-20260629212545745
+BoomBoys,polymarket,12.50,0.080,,2026-08-10T14:00+02:00,https://polymarket.com/event/the-international-2026-winner-20260629212545745
+Team Liquid,polymarket,12.50,0.080,,2026-08-10T14:00+02:00,https://polymarket.com/event/the-international-2026-winner-20260629212545745
+Aurora Gaming,polymarket,14.29,0.070,,2026-08-10T14:00+02:00,https://polymarket.com/event/the-international-2026-winner-20260629212545745
+1win Team,polymarket,14.29,0.070,,2026-08-10T14:00+02:00,https://polymarket.com/event/the-international-2026-winner-20260629212545745
+Vici Gaming,polymarket,14.71,0.068,,2026-08-10T14:00+02:00,https://polymarket.com/event/the-international-2026-winner-20260629212545745
+LGD Gaming,polymarket,18.18,0.055,,2026-08-10T14:00+02:00,https://polymarket.com/event/the-international-2026-winner-20260629212545745
+Xtreme Gaming,polymarket,20.83,0.048,,2026-08-10T14:00+02:00,https://polymarket.com/event/the-international-2026-winner-20260629212545745
+Team Resilience,polymarket,45.45,0.022,,2026-08-10T14:00+02:00,https://polymarket.com/event/the-international-2026-winner-20260629212545745
+Nigma Galaxy,polymarket,62.50,0.016,,2026-08-10T14:00+02:00,https://polymarket.com/event/the-international-2026-winner-20260629212545745
+OG,polymarket,125.00,0.008,,2026-08-10T14:00+02:00,https://polymarket.com/event/the-international-2026-winner-20260629212545745
+GamerLegion,polymarket,200.00,0.005,,2026-08-10T14:00+02:00,https://polymarket.com/event/the-international-2026-winner-20260629212545745
+HULIGANI,polymarket,250.00,0.004,,2026-08-10T14:00+02:00,https://polymarket.com/event/the-international-2026-winner-20260629212545745

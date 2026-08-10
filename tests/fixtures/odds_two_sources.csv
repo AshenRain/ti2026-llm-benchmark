@@ -1,0 +1,5 @@
+team,bookmaker,decimal_odds,implied_prob_raw,implied_prob_normalized,captured_at,source
+Team A,srcA,2.00,,,,
+Team B,srcA,4.00,,,,
+Team A,srcB,3.00,,,,
+Team B,srcB,3.00,,,,
