@@ -83,3 +83,4 @@ README.md          public writeup
 - Raw model output in `runs/` is never hand-edited. If a model returns malformed JSON, that is data — record the failure and parse defensively in `score.py`.
 - Every number in either post must be reproducible from `score.py`.
 - Sample size is small. Nothing in the writeup may claim one model beats another unless the gap exceeds the within-model spread.
+- All reports and charts use normalized probabilities. Raw values (e.g. `1/decimal_odds` before dividing out a bookmaker's overround) are an intermediate step only and are never surfaced as a final number outside `score.py`'s scale-diagnostics table — mixing the two scales (as happened once with Team Yandex's raw 0.167/0.230 vs. normalized 0.109/0.196) must never pass unnoticed. `score.py`'s scale diagnostics print every probability column's sum and explicitly error if a column marked normalized doesn't sum to its expected total within `1e-6`.

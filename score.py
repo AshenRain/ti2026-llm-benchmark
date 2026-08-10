@@ -405,6 +405,22 @@ def uniform_baseline() -> dict:
     return {team: {"swiss": dict(swiss), "p_champion": 1 / len(TEAMS)} for team in TEAMS}
 
 
+def _load_bookmaker_implied(odds_path: Path) -> dict:
+    """source -> {team: raw implied probability (1/decimal_odds)}, BEFORE
+    normalization. Raw implied probabilities are an intermediate value only
+    (see CLAUDE.md) -- their column sums to more than 1.0 by design (the
+    platform's overround/margin lives in that excess). Never report these
+    numbers as a final probability; use bookmaker_baselines() for that."""
+    by_source: dict[str, dict[str, float]] = defaultdict(dict)
+    with odds_path.open(newline="", encoding="utf-8") as f:
+        for row in csv.DictReader(f):
+            odds_str = (row.get("decimal_odds") or "").strip()
+            if not odds_str:
+                continue
+            by_source[row["bookmaker"]][row["team"]] = 1.0 / float(odds_str)
+    return by_source
+
+
 def bookmaker_baselines(odds_path: Path) -> dict:
     """Champion probabilities from odds.csv, grouped by the `bookmaker`
     column and normalized independently within each group (1/decimal_odds,
@@ -420,16 +436,8 @@ def bookmaker_baselines(odds_path: Path) -> dict:
     metrics (multiclass Brier/log loss, advance Brier) and participate only
     in champion-level scoring. Returns {} if odds.csv has no populated rows
     yet."""
-    by_source: dict[str, dict[str, float]] = defaultdict(dict)
-    with odds_path.open(newline="", encoding="utf-8") as f:
-        for row in csv.DictReader(f):
-            odds_str = (row.get("decimal_odds") or "").strip()
-            if not odds_str:
-                continue
-            by_source[row["bookmaker"]][row["team"]] = 1.0 / float(odds_str)
-
     baselines = {}
-    for source, implied in by_source.items():
+    for source, implied in _load_bookmaker_implied(odds_path).items():
         total = sum(implied.values())
         baselines[source] = {
             team: {"swiss": None, "p_champion": p / total}
@@ -466,6 +474,96 @@ def ensemble_baseline(runs: list[ParsedRun]) -> dict:
         swiss = {b: statistics.fmean(e["swiss"][b] for e in entries) for b in BUCKETS}
         ensemble[team] = {"swiss": swiss, "p_champion": statistics.fmean(e["p_champion"] for e in entries)}
     return ensemble
+
+
+# ---------------------------------------------------------------------------
+# Scale diagnostics
+# ---------------------------------------------------------------------------
+#
+# Every probability column in this project is supposed to be normalized
+# (rows/columns sum to a fixed target -- see coherence checks above and
+# CLAUDE.md's Swiss-format constraints). Raw values -- most concretely,
+# 1/decimal_odds before dividing out a bookmaker's overround -- are an
+# intermediate step only and must never be reported or compared against
+# normalized numbers. This section makes every column's sum visible in one
+# place and turns "a column claimed to be normalized isn't" into a loud,
+# explicit error instead of a silent scale mismatch.
+
+def _scale_check(label: str, values, is_normalized: bool, expected: float | None = None,
+                  tol: float = TOLERANCE) -> dict:
+    clean = [v for v in values if not math.isnan(v)]
+    total = sum(clean)
+    error = is_normalized and expected is not None and abs(total - expected) > tol
+    return {
+        "label": label,
+        "sum": total,
+        "n": len(clean),
+        "is_normalized": is_normalized,
+        "expected": expected,
+        "error": error,
+    }
+
+
+def scale_diagnostics(runs: list[ParsedRun], odds_path: Path) -> list:
+    """One record per probability column across every entrant this project
+    reports on: each usable model run's six Swiss buckets and champion
+    column, the uniform and ensemble baselines' same columns, and each
+    bookmaker source's champion column in both its raw (pre-normalization)
+    and normalized form. Raw columns are expected to sum above 1.0 (the
+    overround) and are never flagged; normalized columns are checked
+    against their expected total and flagged with error=True if they miss
+    it by more than `tol`."""
+    checks = []
+
+    for run in runs:
+        if not run.ok:
+            continue
+        prefix = f"model {run.model} run {run.run_id}"
+        for bucket in BUCKETS:
+            vals = [info["swiss"][bucket] for info in run.teams.values()]
+            checks.append(_scale_check(f"{prefix}: swiss[{bucket}]", vals, True, BUCKET_OCCUPANCY[bucket]))
+        champ_vals = [info["p_champion"] for info in run.teams.values()]
+        checks.append(_scale_check(f"{prefix}: p_champion", champ_vals, True, 1.0))
+
+    for label, entrant in (("baseline uniform", uniform_baseline()),
+                            ("baseline ensemble", ensemble_baseline(runs))):
+        if not entrant:
+            continue
+        for bucket in BUCKETS:
+            vals = [info["swiss"][bucket] for info in entrant.values()]
+            checks.append(_scale_check(f"{label}: swiss[{bucket}]", vals, True, BUCKET_OCCUPANCY[bucket]))
+        champ_vals = [info["p_champion"] for info in entrant.values()]
+        checks.append(_scale_check(f"{label}: p_champion", champ_vals, True, 1.0))
+
+    for source, implied in _load_bookmaker_implied(odds_path).items():
+        checks.append(_scale_check(f"bookmaker {source}: p_champion (raw, pre-normalization)",
+                                    implied.values(), False))
+    for source, teams in bookmaker_baselines(odds_path).items():
+        champ_vals = [info["p_champion"] for info in teams.values()]
+        checks.append(_scale_check(f"bookmaker {source}: p_champion (normalized)", champ_vals, True, 1.0))
+
+    return checks
+
+
+def _print_scale_diagnostics(checks: list) -> bool:
+    """Prints the column-sum table; returns True if any normalized column
+    failed its check (callers use this to set a non-zero exit code)."""
+    print("\n--- scale diagnostics (column sums) ---")
+    any_error = False
+    for c in checks:
+        tag = "normalized" if c["is_normalized"] else "raw"
+        line = f"  [{tag:10s}] {c['label']}: sum={c['sum']:.6f} (n={c['n']})"
+        if c["expected"] is not None:
+            line += f"  expected={c['expected']:.6f}"
+        if c["error"]:
+            line += "  *** SCALE ERROR: normalized column does not match its expected sum ***"
+            any_error = True
+        print(line)
+    if any_error:
+        print("\n  SCALE ERROR: one or more columns marked 'normalized' above did not sum")
+        print("  correctly within tolerance. Do not use these numbers until this is fixed --")
+        print("  see CLAUDE.md: all reports/charts use normalized probabilities only.")
+    return any_error
 
 
 # ---------------------------------------------------------------------------
@@ -637,7 +735,7 @@ def _print_coherence(runs: list[ParsedRun], tol: float) -> None:
                   f"{statistics.fmean(champ_stdevs):.4f}")
 
 
-def main() -> None:
+def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("command", choices=["coherence", "score"])
     parser.add_argument("--runs-dir", type=Path, default=Path("runs"))
@@ -649,16 +747,17 @@ def main() -> None:
     runs = load_runs(args.runs_dir)
     if not runs:
         print(f"No run files found in {args.runs_dir}/")
-        return
+        return 0
 
     if args.command == "coherence":
         _print_coherence(runs, args.tol)
-        return
+        scale_error = _print_scale_diagnostics(scale_diagnostics(runs, args.odds))
+        return 1 if scale_error else 0
 
     results = load_results(args.results)
     if not results:
         print(f"{args.results} has no filled-in outcomes yet — nothing to score.")
-        return
+        return 0
     champion = load_champion(args.results)
 
     def fmt(x):
@@ -715,6 +814,9 @@ def main() -> None:
         print(f"  advance Brier: {fmt(binary_advance_brier(teams, results))}")
         print(f"  champion Brier: {fmt(champion_brier(teams, champion))}")
 
+    scale_error = _print_scale_diagnostics(scale_diagnostics(runs, args.odds))
+    return 1 if scale_error else 0
+
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())
