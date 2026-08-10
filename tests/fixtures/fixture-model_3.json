@@ -1,0 +1,203 @@
+Here is my analysis of the TI 2026 group stage:
+
+```json
+{
+  "reasoning": "Synthetic fixture: gives both Team Falcons and Xtreme Gaming a certain w4_l0 finish, breaking the w4_l0 column sum, and wraps the JSON in markdown fences plus surrounding prose to test defensive parsing.",
+  "teams": [
+    {
+      "team": "Team Yandex",
+      "swiss": {
+        "w4_l0": 0.0625,
+        "w4_l1": 0.125,
+        "w4_l2": 0.3125,
+        "w2_l4": 0.3125,
+        "w1_l4": 0.125,
+        "w0_l4": 0.0625
+      },
+      "p_champion": 0.0625
+    },
+    {
+      "team": "BoomBoys",
+      "swiss": {
+        "w4_l0": 0.0625,
+        "w4_l1": 0.125,
+        "w4_l2": 0.3125,
+        "w2_l4": 0.3125,
+        "w1_l4": 0.125,
+        "w0_l4": 0.0625
+      },
+      "p_champion": 0.0625
+    },
+    {
+      "team": "Team Falcons",
+      "swiss": {
+        "w4_l0": 1.0,
+        "w4_l1": 0.0,
+        "w4_l2": 0.0,
+        "w2_l4": 0.0,
+        "w1_l4": 0.0,
+        "w0_l4": 0.0
+      },
+      "p_champion": 0.0625
+    },
+    {
+      "team": "Team Liquid",
+      "swiss": {
+        "w4_l0": 0.0625,
+        "w4_l1": 0.125,
+        "w4_l2": 0.3125,
+        "w2_l4": 0.3125,
+        "w1_l4": 0.125,
+        "w0_l4": 0.0625
+      },
+      "p_champion": 0.0625
+    },
+    {
+      "team": "1win Team",
+      "swiss": {
+        "w4_l0": 0.0625,
+        "w4_l1": 0.125,
+        "w4_l2": 0.3125,
+        "w2_l4": 0.3125,
+        "w1_l4": 0.125,
+        "w0_l4": 0.0625
+      },
+      "p_champion": 0.0625
+    },
+    {
+      "team": "Xtreme Gaming",
+      "swiss": {
+        "w4_l0": 1.0,
+        "w4_l1": 0.0,
+        "w4_l2": 0.0,
+        "w2_l4": 0.0,
+        "w1_l4": 0.0,
+        "w0_l4": 0.0
+      },
+      "p_champion": 0.0625
+    },
+    {
+      "team": "Aurora Gaming",
+      "swiss": {
+        "w4_l0": 0.0625,
+        "w4_l1": 0.125,
+        "w4_l2": 0.3125,
+        "w2_l4": 0.3125,
+        "w1_l4": 0.125,
+        "w0_l4": 0.0625
+      },
+      "p_champion": 0.0625
+    },
+    {
+      "team": "Team Vision",
+      "swiss": {
+        "w4_l0": 0.0625,
+        "w4_l1": 0.125,
+        "w4_l2": 0.3125,
+        "w2_l4": 0.3125,
+        "w1_l4": 0.125,
+        "w0_l4": 0.0625
+      },
+      "p_champion": 0.0625
+    },
+    {
+      "team": "Team Spirit",
+      "swiss": {
+        "w4_l0": 0.0625,
+        "w4_l1": 0.125,
+        "w4_l2": 0.3125,
+        "w2_l4": 0.3125,
+        "w1_l4": 0.125,
+        "w0_l4": 0.0625
+      },
+      "p_champion": 0.0625
+    },
+    {
+      "team": "Nigma Galaxy",
+      "swiss": {
+        "w4_l0": 0.0625,
+        "w4_l1": 0.125,
+        "w4_l2": 0.3125,
+        "w2_l4": 0.3125,
+        "w1_l4": 0.125,
+        "w0_l4": 0.0625
+      },
+      "p_champion": 0.0625
+    },
+    {
+      "team": "HULIGANI",
+      "swiss": {
+        "w4_l0": 0.0625,
+        "w4_l1": 0.125,
+        "w4_l2": 0.3125,
+        "w2_l4": 0.3125,
+        "w1_l4": 0.125,
+        "w0_l4": 0.0625
+      },
+      "p_champion": 0.0625
+    },
+    {
+      "team": "Vici Gaming",
+      "swiss": {
+        "w4_l0": 0.0625,
+        "w4_l1": 0.125,
+        "w4_l2": 0.3125,
+        "w2_l4": 0.3125,
+        "w1_l4": 0.125,
+        "w0_l4": 0.0625
+      },
+      "p_champion": 0.0625
+    },
+    {
+      "team": "Team Resilience",
+      "swiss": {
+        "w4_l0": 0.0625,
+        "w4_l1": 0.125,
+        "w4_l2": 0.3125,
+        "w2_l4": 0.3125,
+        "w1_l4": 0.125,
+        "w0_l4": 0.0625
+      },
+      "p_champion": 0.0625
+    },
+    {
+      "team": "OG",
+      "swiss": {
+        "w4_l0": 0.0625,
+        "w4_l1": 0.125,
+        "w4_l2": 0.3125,
+        "w2_l4": 0.3125,
+        "w1_l4": 0.125,
+        "w0_l4": 0.0625
+      },
+      "p_champion": 0.0625
+    },
+    {
+      "team": "GamerLegion",
+      "swiss": {
+        "w4_l0": 0.0625,
+        "w4_l1": 0.125,
+        "w4_l2": 0.3125,
+        "w2_l4": 0.3125,
+        "w1_l4": 0.125,
+        "w0_l4": 0.0625
+      },
+      "p_champion": 0.0625
+    },
+    {
+      "team": "LGD Gaming",
+      "swiss": {
+        "w4_l0": 0.0625,
+        "w4_l1": 0.125,
+        "w4_l2": 0.3125,
+        "w2_l4": 0.3125,
+        "w1_l4": 0.125,
+        "w0_l4": 0.0625
+      },
+      "p_champion": 0.0625
+    }
+  ]
+}
+```
+
+Let me know if you'd like me to adjust any of these numbers!
