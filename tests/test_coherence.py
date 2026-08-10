@@ -5,10 +5,12 @@ each violating a different constraint from CLAUDE.md on purpose:
 
   run 1 - row-sum violation (Team Yandex) + a missing team (GamerLegion)
   run 2 - champion-column violation, an advance violation (OG), and a
-          legacy/unknown team name (BetBoom Team instead of BoomBoys)
+          legacy team name (BetBoom Team instead of BoomBoys) that the
+          synonym table resolves -- a parse-level-2 format violation, not
+          a missing/unknown team
   run 3 - column-sum violation (two teams both claim a certain w4_l0), and
           the whole response wrapped in markdown fences + prose, to check
-          the defensive JSON extraction
+          the defensive JSON extraction (also parse level 2)
 
 Run with: py tests/test_coherence.py
 """
@@ -38,6 +40,8 @@ def main() -> int:
     print("run 1 (row-sum + missing team)")
     r1 = runs["1"]
     ok &= check("parses successfully", r1.ok)
+    ok &= check("parse level 1 (no repairs needed -- coherence bugs aren't format bugs)",
+                r1.parse_level == 1)
     ok &= check("flags GamerLegion as missing", "GamerLegion" in r1.missing_teams)
     row_dev = score.row_deviations(r1)
     ok &= check("flags Team Yandex row-sum deviation > tolerance",
@@ -48,11 +52,14 @@ def main() -> int:
     ok &= check("column deviation nonzero (fallout from missing team)",
                 max(col_dev.values()) > score.TOLERANCE)
 
-    print("run 2 (champion-column + advance violation + unknown team)")
+    print("run 2 (champion-column + advance violation + legacy team name)")
     r2 = runs["2"]
     ok &= check("parses successfully", r2.ok)
-    ok &= check("flags BoomBoys as missing", "BoomBoys" in r2.missing_teams)
-    ok &= check("flags BetBoom Team as unknown", "BetBoom Team" in r2.unknown_teams)
+    ok &= check("parse level 2 (legacy name needed synonym resolution)", r2.parse_level == 2)
+    ok &= check("BoomBoys resolved, not missing", "BoomBoys" not in r2.missing_teams)
+    ok &= check("BetBoom Team resolved, not left unknown", "BetBoom Team" not in r2.unknown_teams)
+    ok &= check("repairs log records the synonym resolution",
+                any("BetBoom Team" in r and "BoomBoys" in r for r in r2.repairs))
     champ_dev = score.champion_deviation(r2)
     ok &= check("champion column deviates far from 1.0", champ_dev > 0.5)
     violations = score.advance_violations(r2)
@@ -63,6 +70,7 @@ def main() -> int:
     print("run 3 (column-sum violation + markdown-wrapped JSON)")
     r3 = runs["3"]
     ok &= check("defensively parses markdown-fenced JSON with surrounding prose", r3.ok)
+    ok &= check("parse level 2 (needed JSON extraction)", r3.parse_level == 2)
     col_dev3 = score.column_deviations(r3)
     ok &= check("flags w4_l0 column-sum violation (two teams both claim it)",
                 col_dev3["w4_l0"] > 1.0)

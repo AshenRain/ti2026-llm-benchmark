@@ -16,7 +16,7 @@ import csv
 import json
 import math
 import statistics
-from collections import defaultdict
+from collections import Counter, defaultdict
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -43,8 +43,48 @@ BUCKETS = ["w4_l0", "w4_l1", "w4_l2", "w2_l4", "w1_l4", "w0_l4"]
 BUCKET_OCCUPANCY = {"w4_l0": 1, "w4_l1": 2, "w4_l2": 5, "w2_l4": 5, "w1_l4": 2, "w0_l4": 1}
 ADVANCE_BUCKETS = ["w4_l0", "w4_l1", "w4_l2"]
 ELIMINATE_BUCKETS = ["w2_l4", "w1_l4", "w0_l4"]
+BUCKET_RECORDS = {"w4_l0": (4, 0), "w4_l1": (4, 1), "w4_l2": (4, 2),
+                   "w2_l4": (2, 4), "w1_l4": (1, 4), "w0_l4": (0, 4)}
 
 TOLERANCE = 1e-6  # what counts as "exactly satisfies the constraint"
+
+# Legacy/alternate org tags noted in context_pack.md section 2, plus common
+# shorthand a model might use instead of the full roster name. Matched
+# case-insensitively. Resolving one of these is a mechanical repair (level
+# 2), not a free pass -- the prompt asks for exact names on purpose.
+TEAM_SYNONYMS = {
+    "betboom team": "BoomBoys",
+    "betboom": "BoomBoys",
+    "bb team": "BoomBoys",
+    "parivision": "Team Vision",
+    "pvision": "Team Vision",
+    "tundra esports": "1win Team",
+    "tundra": "1win Team",
+    "l1ga team": "HULIGANI",
+    "l1ga": "HULIGANI",
+    "yandex": "Team Yandex",
+    "falcons": "Team Falcons",
+    "liquid": "Team Liquid",
+    "1win": "1win Team",
+    "xtreme": "Xtreme Gaming",
+    "aurora": "Aurora Gaming",
+    "spirit": "Team Spirit",
+    "nigma": "Nigma Galaxy",
+    "vici": "Vici Gaming",
+    "resilience": "Team Resilience",
+    "gamer legion": "GamerLegion",
+    "lgd": "LGD Gaming",
+}
+
+# Key names a model might use instead of the ones specified in prompt.md.
+# Resolving any of these (or even just a case/spacing variant of the
+# canonical key) is a mechanical repair.
+TEAMS_LIST_ALIASES = {"teams", "predictions", "results", "team_predictions", "forecasts"}
+TEAM_NAME_ALIASES = {"team", "name", "team_name", "teamname"}
+SWISS_ALIASES = {"swiss", "buckets", "bucket_probs", "distribution", "probabilities",
+                  "swiss_probabilities", "swiss_distribution"}
+CHAMPION_ALIASES = {"p_champion", "champion_probability", "win_probability", "p_win",
+                     "champion", "champion_prob", "pchampion"}
 
 
 # ---------------------------------------------------------------------------
@@ -53,11 +93,20 @@ TOLERANCE = 1e-6  # what counts as "exactly satisfies the constraint"
 
 @dataclass
 class ParsedRun:
+    """parse_level:
+      1 - valid JSON, every key and team name exactly as specified
+      2 - recovered mechanically (markdown fences / surrounding prose,
+          key-name variants, team-name variants); usable, but a format
+          violation -- see coherence_report()'s "format_violation" flag
+      3 - not recoverable; excluded from scoring (ok=False)
+    """
     path: Path
     model: str
     run_id: str
     ok: bool
+    parse_level: int = 3
     parse_error: str | None = None
+    repairs: list = field(default_factory=list)
     teams: dict = field(default_factory=dict)   # team -> {"swiss": {bucket: prob}, "p_champion": float}
     missing_teams: list = field(default_factory=list)
     unknown_teams: list = field(default_factory=list)
@@ -74,6 +123,95 @@ def _extract_json_object(text: str) -> str:
     return text[start:end + 1]
 
 
+def _normalize_key(key: str) -> str:
+    """Collapse a key to lowercase alphanumerics so 'Team_Name', 'team name'
+    and 'TeamName' all compare equal."""
+    return "".join(ch for ch in key.strip().lower() if ch.isalnum())
+
+
+def _find_aliased_key(d: dict, aliases: set, canonical: str) -> tuple:
+    """Look for `canonical`, or a case/spacing variant of it, or one of
+    `aliases`, among d's keys. Returns (actual_key_found_or_None,
+    was_a_repair). Exact-canonical match is not a repair; anything else
+    (including a same-spelling-different-case canonical key) is."""
+    if canonical in d:
+        return canonical, False
+    normalized_map = {_normalize_key(k): k for k in d.keys()}
+    norm_canonical = _normalize_key(canonical)
+    if norm_canonical in normalized_map:
+        return normalized_map[norm_canonical], True
+    for alias in aliases:
+        norm_alias = _normalize_key(alias)
+        if norm_alias in normalized_map:
+            return normalized_map[norm_alias], True
+    return None, False
+
+
+def _resolve_bucket_key(raw_key: str) -> tuple:
+    """Match a Swiss bucket key that may use different separators/case, or
+    plain win-loss notation ('4-0', '40'). Returns (canonical_bucket_or_None,
+    was_a_repair)."""
+    if raw_key in BUCKETS:
+        return raw_key, False
+    compact = _normalize_key(raw_key)
+    for bucket, (wins, losses) in BUCKET_RECORDS.items():
+        if compact == f"w{wins}l{losses}" or compact == f"{wins}{losses}":
+            return bucket, True
+    return None, False
+
+
+def _resolve_team_name(raw: str) -> tuple:
+    """Returns (resolved_name, was_a_repair). If unresolved, resolved_name
+    is the raw string as given (it will surface via unknown_teams)."""
+    if raw in TEAMS:
+        return raw, False
+    lowered = raw.strip().lower()
+    for team in TEAMS:
+        if team.lower() == lowered:
+            return team, True
+    if lowered in TEAM_SYNONYMS:
+        return TEAM_SYNONYMS[lowered], True
+    return raw, False
+
+
+def _process_team_entry(entry: dict, repairs: list) -> tuple:
+    """Returns (resolved_team_name_or_None, swiss_dict, p_champion)."""
+    team_key, team_key_repair = _find_aliased_key(entry, TEAM_NAME_ALIASES, "team")
+    if team_key is None or not isinstance(entry.get(team_key), str):
+        return None, None, math.nan
+    if team_key_repair:
+        repairs.append(f"team-name key '{team_key}' resolved to 'team'")
+
+    raw_name = entry[team_key]
+    resolved_name, name_repair = _resolve_team_name(raw_name)
+    if name_repair:
+        repairs.append(f"team name '{raw_name}' resolved to '{resolved_name}'")
+
+    swiss_key, swiss_key_repair = _find_aliased_key(entry, SWISS_ALIASES, "swiss")
+    swiss_raw = entry.get(swiss_key) if swiss_key else None
+    if not isinstance(swiss_raw, dict):
+        swiss_raw = {}
+    elif swiss_key_repair:
+        repairs.append(f"swiss key '{swiss_key}' (team {resolved_name}) resolved to 'swiss'")
+
+    swiss = {b: math.nan for b in BUCKETS}
+    for raw_bucket_key, val in swiss_raw.items():
+        bucket, bucket_repair = _resolve_bucket_key(raw_bucket_key)
+        if bucket is None or not isinstance(val, (int, float)):
+            continue
+        swiss[bucket] = float(val)
+        if bucket_repair:
+            repairs.append(f"bucket key '{raw_bucket_key}' (team {resolved_name}) resolved to '{bucket}'")
+
+    champ_key, champ_key_repair = _find_aliased_key(entry, CHAMPION_ALIASES, "p_champion")
+    p_champion_raw = entry.get(champ_key) if champ_key else None
+    p_champion = float(p_champion_raw) if isinstance(p_champion_raw, (int, float)) else math.nan
+    if champ_key is not None and champ_key_repair:
+        repairs.append(f"champion key '{champ_key}' (team {resolved_name}) resolved to 'p_champion'")
+
+    return resolved_name, swiss, p_champion
+
+
 def parse_run_file(path: Path) -> ParsedRun:
     stem = path.stem
     if "_" in stem:
@@ -82,45 +220,75 @@ def parse_run_file(path: Path) -> ParsedRun:
         model, run_id = stem, "?"
 
     raw = path.read_text(encoding="utf-8")
+    extraction_repair = False
     try:
         data = json.loads(raw)
     except json.JSONDecodeError:
         try:
             data = json.loads(_extract_json_object(raw))
+            extraction_repair = True
         except (ValueError, json.JSONDecodeError) as exc:
-            return ParsedRun(path, model, run_id, ok=False, parse_error=str(exc))
+            return ParsedRun(path, model, run_id, ok=False, parse_level=3, parse_error=str(exc))
 
-    teams_field = data.get("teams") if isinstance(data, dict) else None
+    if not isinstance(data, dict):
+        return ParsedRun(path, model, run_id, ok=False, parse_level=3,
+                          parse_error="top-level JSON is not an object")
+
+    repairs: list = []
+    if extraction_repair:
+        repairs.append("extracted JSON object from surrounding text (markdown fences and/or prose)")
+
+    teams_key, teams_key_repair = _find_aliased_key(data, TEAMS_LIST_ALIASES, "teams")
+    teams_field = data.get(teams_key) if teams_key else None
     if not isinstance(teams_field, list):
-        return ParsedRun(path, model, run_id, ok=False, parse_error="'teams' field missing or not a list")
+        return ParsedRun(path, model, run_id, ok=False, parse_level=3,
+                          parse_error="no usable 'teams' field found, even after key-alias lookup")
+    if teams_key_repair:
+        repairs.append(f"top-level key '{teams_key}' resolved to 'teams'")
 
     teams: dict[str, dict] = {}
     for entry in teams_field:
-        if not isinstance(entry, dict) or "team" not in entry:
+        if not isinstance(entry, dict):
             continue
-        name = entry["team"]
-        swiss_raw = entry.get("swiss", {}) if isinstance(entry.get("swiss"), dict) else {}
-        swiss = {}
-        for bucket in BUCKETS:
-            val = swiss_raw.get(bucket)
-            swiss[bucket] = float(val) if isinstance(val, (int, float)) else math.nan
-        p_champion = entry.get("p_champion")
-        teams[name] = {
-            "swiss": swiss,
-            "p_champion": float(p_champion) if isinstance(p_champion, (int, float)) else math.nan,
-        }
+        name, swiss, p_champion = _process_team_entry(entry, repairs)
+        if name is None:
+            continue
+        teams[name] = {"swiss": swiss, "p_champion": p_champion}
+
+    if not teams:
+        return ParsedRun(path, model, run_id, ok=False, parse_level=3,
+                          parse_error="'teams' field present but no usable team entries in it")
 
     known = set(TEAMS)
     seen = set(teams.keys())
     missing_teams = sorted(known - seen)
     unknown_teams = sorted(seen - known)
 
-    return ParsedRun(path, model, run_id, ok=True, teams=teams,
-                      missing_teams=missing_teams, unknown_teams=unknown_teams)
+    parse_level = 2 if repairs else 1
+    return ParsedRun(path, model, run_id, ok=True, parse_level=parse_level, repairs=repairs,
+                      teams=teams, missing_teams=missing_teams, unknown_teams=unknown_teams)
 
 
 def load_runs(runs_dir: Path) -> list[ParsedRun]:
     return [parse_run_file(p) for p in sorted(runs_dir.glob("*.json"))]
+
+
+def parse_summary(runs: list[ParsedRun]) -> dict:
+    """Per-model counts of how many runs parsed at each level -- the 'n
+    parsed runs per model' the report must always surface."""
+    summary = {}
+    for model, model_runs in group_by_model(runs).items():
+        counts = {1: 0, 2: 0, 3: 0}
+        for r in model_runs:
+            counts[r.parse_level] += 1
+        summary[model] = {
+            "n_total": len(model_runs),
+            "n_level1": counts[1],
+            "n_level2": counts[2],
+            "n_level3": counts[3],
+            "n_usable": counts[1] + counts[2],
+        }
+    return summary
 
 
 # ---------------------------------------------------------------------------
@@ -170,7 +338,7 @@ def advance_violations(run: ParsedRun, tol: float = TOLERANCE) -> list:
 def coherence_report(run: ParsedRun, tol: float = TOLERANCE) -> dict:
     if not run.ok:
         return {"path": str(run.path), "model": run.model, "run_id": run.run_id,
-                "ok": False, "parse_error": run.parse_error}
+                "ok": False, "parse_level": run.parse_level, "parse_error": run.parse_error}
 
     row_dev = row_deviations(run)
     col_dev = column_deviations(run)
@@ -179,6 +347,9 @@ def coherence_report(run: ParsedRun, tol: float = TOLERANCE) -> dict:
         "model": run.model,
         "run_id": run.run_id,
         "ok": True,
+        "parse_level": run.parse_level,
+        "format_violation": run.parse_level == 2,
+        "repairs": run.repairs,
         "missing_teams": run.missing_teams,
         "unknown_teams": run.unknown_teams,
         "row_deviation_max": max(row_dev.values(), default=math.nan),
@@ -406,13 +577,40 @@ def reliability_bins(pairs: list, bin_size: float = 0.1) -> list:
 # CLI
 # ---------------------------------------------------------------------------
 
+def _summarize_repairs(repairs: list) -> list:
+    """Collapse repairs that repeat per-team (e.g. the same key alias
+    applied to all 16 entries) into one line with a count, for a readable
+    report. The full, per-team detail stays available on ParsedRun.repairs."""
+    templates = []
+    for r in repairs:
+        start = r.find(" (team ")
+        end = r.find(")", start) if start != -1 else -1
+        templates.append(r[:start] + r[end + 1:] if start != -1 and end != -1 else r)
+    counts = Counter(templates)
+    out, seen = [], set()
+    for template in templates:
+        if template in seen:
+            continue
+        seen.add(template)
+        n = counts[template]
+        out.append(f"{template} (x{n})" if n > 1 else template)
+    return out
+
+
 def _print_coherence(runs: list[ParsedRun], tol: float) -> None:
     for run in runs:
         report = coherence_report(run, tol)
-        print(f"\n{report['path']}  (model={report['model']}, run={report['run_id']})")
+        level_tag = f"parse level {report['parse_level']}"
+        if report.get("format_violation"):
+            level_tag += " [FORMAT VIOLATION]"
+        print(f"\n{report['path']}  (model={report['model']}, run={report['run_id']}, {level_tag})")
         if not report["ok"]:
-            print(f"  PARSE FAILED: {report['parse_error']}")
+            print(f"  UNRECOVERABLE: {report['parse_error']}")
             continue
+        if report["repairs"]:
+            print("  repairs applied:")
+            for repair in _summarize_repairs(report["repairs"]):
+                print(f"    - {repair}")
         if report["missing_teams"]:
             print(f"  missing teams: {report['missing_teams']}")
         if report["unknown_teams"]:
@@ -422,6 +620,11 @@ def _print_coherence(runs: list[ParsedRun], tol: float) -> None:
         print(f"  champion deviation: {report['champion_deviation']:.4f}")
         if report["advance_violations"]:
             print(f"  advance violations: {report['advance_violations']}")
+
+    print("\n--- parse summary, by model ---")
+    for model, s in parse_summary(runs).items():
+        print(f"  {model}: n={s['n_usable']}/{s['n_total']} parsed "
+              f"(level1={s['n_level1']}, level2={s['n_level2']}, unrecoverable={s['n_level3']})")
 
     print("\n--- spread across runs (noise floor), by model ---")
     for model, model_runs in group_by_model(runs).items():
@@ -458,14 +661,52 @@ def main() -> None:
         return
     champion = load_champion(args.results)
 
-    entrants = {f"model {run.model} run {run.run_id}": run.teams for run in runs if run.ok}
-    entrants["baseline: uniform"] = uniform_baseline()
-    entrants["baseline: ensemble"] = ensemble_baseline(runs)
-    for source, teams in bookmaker_baselines(args.odds).items():
-        entrants[f"baseline: bookmaker ({source})"] = teams
-
     def fmt(x):
         return "N/A" if x is None else f"{x:.4f}"
+
+    print("--- parse summary, by model ---")
+    for model, s in parse_summary(runs).items():
+        print(f"  {model}: n={s['n_usable']}/{s['n_total']} parsed "
+              f"(level1={s['n_level1']}, level2={s['n_level2']}, unrecoverable={s['n_level3']})")
+
+    print("\n--- per-run metrics (level-2 runs are format violations; still scored) ---")
+    for run in runs:
+        if not run.ok:
+            continue
+        tag = " [FORMAT VIOLATION]" if run.parse_level == 2 else ""
+        print(f"\n{run.path}{tag}")
+        print(f"  multiclass Brier: {fmt(multiclass_brier(run.teams, results))}")
+        print(f"  multiclass log loss: {fmt(multiclass_logloss(run.teams, results))}")
+        print(f"  advance Brier: {fmt(binary_advance_brier(run.teams, results))}")
+        print(f"  champion Brier: {fmt(champion_brier(run.teams, champion))}")
+
+    metric_fns = {
+        "multiclass Brier": lambda r: multiclass_brier(r.teams, results),
+        "multiclass log loss": lambda r: multiclass_logloss(r.teams, results),
+        "advance Brier": lambda r: binary_advance_brier(r.teams, results),
+        "champion Brier": lambda r: champion_brier(r.teams, champion),
+    }
+
+    def mean_or_none(run_subset, fn):
+        vals = [v for v in (fn(r) for r in run_subset) if v is not None]
+        return statistics.fmean(vals) if vals else None
+
+    print("\n--- per model: strict (level 1 only) vs all (level 1+2) ---")
+    for model, model_runs in group_by_model(runs).items():
+        level1_runs = [r for r in model_runs if r.parse_level == 1]
+        usable_runs = [r for r in model_runs if r.ok]
+        if not usable_runs:
+            continue
+        print(f"\n{model}  (n_level1={len(level1_runs)}, n_level1+2={len(usable_runs)})")
+        for label, fn in metric_fns.items():
+            strict = mean_or_none(level1_runs, fn)
+            lenient = mean_or_none(usable_runs, fn)
+            print(f"  {label}: strict(L1)={fmt(strict)}  all(L1+L2)={fmt(lenient)}")
+
+    print("\n--- baselines ---")
+    entrants = {"uniform": uniform_baseline(), "ensemble": ensemble_baseline(runs)}
+    for source, teams in bookmaker_baselines(args.odds).items():
+        entrants[f"bookmaker ({source})"] = teams
 
     for label, teams in entrants.items():
         print(f"\n{label}")
