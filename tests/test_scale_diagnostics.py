@@ -1,13 +1,25 @@
 """Checks the scale-diagnostics table: every probability column's sum is
 shown, raw columns (which sum above 1.0 by design -- that's the platform's
 margin) are never flagged, and a column claimed to be normalized that
-doesn't actually sum to its expected total raises an explicit, loud error
-rather than passing silently.
+doesn't actually sum to its expected total is flagged loudly rather than
+passing silently.
+
+A failed check is one of two categories, not one generic "error":
+
+  PIPELINE_CATEGORY -- a column this code builds deterministically (the
+      uniform baseline, a bookmaker source's own normalization) is off, or
+      a raw value got compared as if normalized. A code defect; the CLI
+      exit code must reflect it.
+  MEASURED_CATEGORY -- a model run's (or the ensemble's, which inherits
+      it) own column misses its target. That's the benchmark's actual
+      finding, not a bug, and must never fail the script.
 
 This guards against exactly the bug that prompted it: comparing a raw
 implied probability (e.g. Team Yandex at 1/6.00 = 0.167 from one
 bookmaker) against a normalized one (e.g. 0.196 from another, after
-dividing by that source's own total) as if they were on the same scale.
+dividing by that source's own total) as if they were on the same scale --
+that is a PIPELINE_CATEGORY failure. A model that just didn't satisfy the
+Swiss constraints is MEASURED_CATEGORY and shouldn't look like a bug.
 
 Run with: py tests/test_scale_diagnostics.py
 """
@@ -46,8 +58,24 @@ def main() -> int:
 
     print("_scale_check: a column CLAIMED normalized but off catches the exact bug reported")
     # Team Yandex-style mismatch: values on a raw scale (0.167, 0.230) mislabeled normalized.
-    bad = score._scale_check("mislabeled raw-as-normalized", [0.167, 0.230], is_normalized=True, expected=1.0)
+    # That's our own bookkeeping being wrong -- a pipeline-category failure.
+    bad = score._scale_check("mislabeled raw-as-normalized", [0.167, 0.230], is_normalized=True,
+                              expected=1.0, category=score.PIPELINE_CATEGORY)
     ok &= check("flagged as an error, not silently accepted", bad["error"] is True)
+    ok &= check("categorized as pipeline (it's our bookkeeping, not model behavior)",
+                bad["category"] == score.PIPELINE_CATEGORY)
+
+    print("_scale_check: a model that just didn't satisfy the constraints is measured, not pipeline")
+    measured_bad = score._scale_check("model demo run 1: p_champion", [0.6, 0.6], is_normalized=True,
+                                       expected=1.0, category=score.MEASURED_CATEGORY)
+    ok &= check("still flagged as an error", measured_bad["error"] is True)
+    ok &= check("categorized as measured, not pipeline",
+                measured_bad["category"] == score.MEASURED_CATEGORY)
+
+    print("_scale_check: category is dropped when there's no error (nothing to label)")
+    ok &= check("a passing check has no category even if one was passed in",
+                score._scale_check("passes", [1.0], is_normalized=True, expected=1.0,
+                                    category=score.PIPELINE_CATEGORY)["category"] is None)
 
     print("_scale_check: right at the 1e-6 tolerance boundary")
     boundary_ok = score._scale_check("at tolerance", [0.5 + 5e-7, 0.5], is_normalized=True, expected=1.0)
@@ -75,19 +103,33 @@ def main() -> int:
     ok &= check("no unrecoverable (level-3) run contributes a column",
                 not any("run 3" in c["label"] for c in checks))
 
-    print("_print_scale_diagnostics: prints a loud banner and returns True on error")
+    print("_print_scale_diagnostics: pipeline error -> True return + PIPELINE ERROR banner")
     buf = io.StringIO()
     with redirect_stdout(buf):
-        had_error = score._print_scale_diagnostics([bad, good, raw_result])
+        had_pipeline_error = score._print_scale_diagnostics([bad, good, raw_result])
     output = buf.getvalue()
-    ok &= check("returns True when a normalized column is off", had_error is True)
-    ok &= check("prints an explicit SCALE ERROR banner", "SCALE ERROR" in output)
+    ok &= check("returns True for a pipeline-category failure", had_pipeline_error is True)
+    ok &= check("prints an explicit PIPELINE ERROR banner", "PIPELINE ERROR" in output)
+    ok &= check("does not print a MEASURED INCOHERENCE banner (none present)",
+                "Measured incoherence:" not in output)
+
+    print("_print_scale_diagnostics: measured incoherence -> False return, informational banner only")
+    buf_measured = io.StringIO()
+    with redirect_stdout(buf_measured):
+        had_pipeline_error_measured = score._print_scale_diagnostics([measured_bad, good, raw_result])
+    output_measured = buf_measured.getvalue()
+    ok &= check("returns False -- measured incoherence must never fail the script",
+                had_pipeline_error_measured is False)
+    ok &= check("prints a MEASURED INCOHERENCE line", "MEASURED INCOHERENCE" in output_measured)
+    ok &= check("does not print a PIPELINE ERROR banner", "PIPELINE ERROR" not in output_measured)
 
     buf_clean = io.StringIO()
     with redirect_stdout(buf_clean):
         had_error_clean = score._print_scale_diagnostics([good, raw_result])
     ok &= check("returns False when nothing is wrong", had_error_clean is False)
-    ok &= check("no error banner when everything checks out", "SCALE ERROR" not in buf_clean.getvalue())
+    ok &= check("no error labels when everything checks out",
+                "PIPELINE ERROR" not in buf_clean.getvalue()
+                and "MEASURED INCOHERENCE" not in buf_clean.getvalue())
 
     print()
     print("ALL CHECKS PASSED" if ok else "SOME CHECKS FAILED")

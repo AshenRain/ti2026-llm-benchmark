@@ -15,6 +15,7 @@ import argparse
 import csv
 import json
 import math
+import re
 import statistics
 from collections import Counter, defaultdict
 from dataclasses import dataclass, field
@@ -212,12 +213,25 @@ def _process_team_entry(entry: dict, repairs: list) -> tuple:
     return resolved_name, swiss, p_champion
 
 
-def parse_run_file(path: Path) -> ParsedRun:
-    stem = path.stem
+_RUN_SUFFIX_RE = re.compile(r"^(?P<model>.+)_run_(?P<run_id>\d+)$")
+
+
+def _split_model_run(stem: str) -> tuple:
+    """Filenames are '{model}_run_{N}.json' (e.g. 'opus5_run_1' ->
+    ('opus5', '1'), 'grok4_5_run_3' -> ('grok4_5', '3')). Falls back to a
+    plain trailing '_{N}' split for anything that doesn't match, so
+    filenames from before this convention still parse sensibly."""
+    m = _RUN_SUFFIX_RE.match(stem)
+    if m:
+        return m.group("model"), m.group("run_id")
     if "_" in stem:
         model, run_id = stem.rsplit("_", 1)
-    else:
-        model, run_id = stem, "?"
+        return model, run_id
+    return stem, "?"
+
+
+def parse_run_file(path: Path) -> ParsedRun:
+    model, run_id = _split_model_run(path.stem)
 
     raw = path.read_text(encoding="utf-8")
     extraction_repair = False
@@ -487,10 +501,27 @@ def ensemble_baseline(runs: list[ParsedRun]) -> dict:
 # intermediate step only and must never be reported or compared against
 # normalized numbers. This section makes every column's sum visible in one
 # place and turns "a column claimed to be normalized isn't" into a loud,
-# explicit error instead of a silent scale mismatch.
+# explicit signal instead of a silent scale mismatch.
+#
+# A failed check is not automatically "an error" in the same sense, though.
+# Two very different things can make a normalized column miss its target:
+#
+#   "pipeline" -- a column WE build deterministically (the uniform baseline,
+#       a bookmaker source's post-normalization values) doesn't sum right,
+#       or a raw value ended up compared as if it were normalized. Either
+#       way that is a defect in this code and needs fixing before any
+#       number in the report can be trusted.
+#   "measured" -- a model run's own swiss/champion column (or the ensemble,
+#       which is a plain mean of model runs and so inherits whatever they
+#       didn't satisfy) misses its target. That is the benchmark's actual
+#       finding -- the model failed to follow the constraints -- not a bug.
+
+PIPELINE_CATEGORY = "pipeline"
+MEASURED_CATEGORY = "measured"
+
 
 def _scale_check(label: str, values, is_normalized: bool, expected: float | None = None,
-                  tol: float = TOLERANCE) -> dict:
+                  category: str | None = None, tol: float = TOLERANCE) -> dict:
     clean = [v for v in values if not math.isnan(v)]
     total = sum(clean)
     error = is_normalized and expected is not None and abs(total - expected) > tol
@@ -500,6 +531,7 @@ def _scale_check(label: str, values, is_normalized: bool, expected: float | None
         "n": len(clean),
         "is_normalized": is_normalized,
         "expected": expected,
+        "category": category if error else None,
         "error": error,
     }
 
@@ -507,12 +539,13 @@ def _scale_check(label: str, values, is_normalized: bool, expected: float | None
 def scale_diagnostics(runs: list[ParsedRun], odds_path: Path) -> list:
     """One record per probability column across every entrant this project
     reports on: each usable model run's six Swiss buckets and champion
-    column, the uniform and ensemble baselines' same columns, and each
-    bookmaker source's champion column in both its raw (pre-normalization)
-    and normalized form. Raw columns are expected to sum above 1.0 (the
-    overround) and are never flagged; normalized columns are checked
-    against their expected total and flagged with error=True if they miss
-    it by more than `tol`."""
+    column (category=measured), the uniform baseline's same columns
+    (category=pipeline), the ensemble baseline's same columns
+    (category=measured -- it's a mean of model runs and inherits their
+    incoherence), and each bookmaker source's champion column in both its
+    raw (pre-normalization, never checked) and normalized (category=
+    pipeline) form. Normalized columns are checked against their expected
+    total and flagged with error=True if they miss it by more than `tol`."""
     checks = []
 
     for run in runs:
@@ -521,48 +554,76 @@ def scale_diagnostics(runs: list[ParsedRun], odds_path: Path) -> list:
         prefix = f"model {run.model} run {run.run_id}"
         for bucket in BUCKETS:
             vals = [info["swiss"][bucket] for info in run.teams.values()]
-            checks.append(_scale_check(f"{prefix}: swiss[{bucket}]", vals, True, BUCKET_OCCUPANCY[bucket]))
+            checks.append(_scale_check(f"{prefix}: swiss[{bucket}]", vals, True,
+                                        BUCKET_OCCUPANCY[bucket], MEASURED_CATEGORY))
         champ_vals = [info["p_champion"] for info in run.teams.values()]
-        checks.append(_scale_check(f"{prefix}: p_champion", champ_vals, True, 1.0))
+        checks.append(_scale_check(f"{prefix}: p_champion", champ_vals, True, 1.0, MEASURED_CATEGORY))
 
-    for label, entrant in (("baseline uniform", uniform_baseline()),
-                            ("baseline ensemble", ensemble_baseline(runs))):
-        if not entrant:
-            continue
+    uniform = uniform_baseline()
+    for bucket in BUCKETS:
+        vals = [info["swiss"][bucket] for info in uniform.values()]
+        checks.append(_scale_check(f"baseline uniform: swiss[{bucket}]", vals, True,
+                                    BUCKET_OCCUPANCY[bucket], PIPELINE_CATEGORY))
+    champ_vals = [info["p_champion"] for info in uniform.values()]
+    checks.append(_scale_check("baseline uniform: p_champion", champ_vals, True, 1.0, PIPELINE_CATEGORY))
+
+    ensemble = ensemble_baseline(runs)
+    if ensemble:
         for bucket in BUCKETS:
-            vals = [info["swiss"][bucket] for info in entrant.values()]
-            checks.append(_scale_check(f"{label}: swiss[{bucket}]", vals, True, BUCKET_OCCUPANCY[bucket]))
-        champ_vals = [info["p_champion"] for info in entrant.values()]
-        checks.append(_scale_check(f"{label}: p_champion", champ_vals, True, 1.0))
+            vals = [info["swiss"][bucket] for info in ensemble.values()]
+            checks.append(_scale_check(f"baseline ensemble: swiss[{bucket}]", vals, True,
+                                        BUCKET_OCCUPANCY[bucket], MEASURED_CATEGORY))
+        champ_vals = [info["p_champion"] for info in ensemble.values()]
+        checks.append(_scale_check("baseline ensemble: p_champion", champ_vals, True, 1.0, MEASURED_CATEGORY))
 
     for source, implied in _load_bookmaker_implied(odds_path).items():
         checks.append(_scale_check(f"bookmaker {source}: p_champion (raw, pre-normalization)",
                                     implied.values(), False))
     for source, teams in bookmaker_baselines(odds_path).items():
         champ_vals = [info["p_champion"] for info in teams.values()]
-        checks.append(_scale_check(f"bookmaker {source}: p_champion (normalized)", champ_vals, True, 1.0))
+        checks.append(_scale_check(f"bookmaker {source}: p_champion (normalized)", champ_vals, True, 1.0,
+                                    PIPELINE_CATEGORY))
 
     return checks
 
 
 def _print_scale_diagnostics(checks: list) -> bool:
-    """Prints the column-sum table; returns True if any normalized column
-    failed its check (callers use this to set a non-zero exit code)."""
+    """Prints the column-sum table, one line per column. A failed check is
+    labeled by category, not lumped into one generic "SCALE ERROR":
+      [PIPELINE ERROR]        -- a defect in this code (see PIPELINE_CATEGORY
+                                  in scale_diagnostics()); needs fixing
+      [MEASURED INCOHERENCE]  -- a model (or the ensemble) missed a
+                                  constraint; that's the benchmark's finding,
+                                  not a bug
+    Returns True only for a pipeline error -- callers use this (and only
+    this) to decide a non-zero exit code. Measured incoherence must never
+    fail the script; it's expected, reportable data."""
     print("\n--- scale diagnostics (column sums) ---")
-    any_error = False
+    pipeline_error = False
+    measured_incoherence = False
     for c in checks:
         tag = "normalized" if c["is_normalized"] else "raw"
         line = f"  [{tag:10s}] {c['label']}: sum={c['sum']:.6f} (n={c['n']})"
         if c["expected"] is not None:
             line += f"  expected={c['expected']:.6f}"
         if c["error"]:
-            line += "  *** SCALE ERROR: normalized column does not match its expected sum ***"
-            any_error = True
+            if c["category"] == PIPELINE_CATEGORY:
+                line += "  *** PIPELINE ERROR: code defect, needs fixing ***"
+                pipeline_error = True
+            else:
+                line += "  *** MEASURED INCOHERENCE: constraint violated in the data ***"
+                measured_incoherence = True
         print(line)
-    if any_error:
-        print("\n  SCALE ERROR: one or more columns marked 'normalized' above did not sum")
-        print("  correctly within tolerance. Do not use these numbers until this is fixed --")
-        print("  see CLAUDE.md: all reports/charts use normalized probabilities only.")
+    if pipeline_error:
+        print("\n  PIPELINE ERROR: a column this code builds deterministically (the uniform")
+        print("  baseline, a bookmaker source's normalization) did not sum correctly, or a")
+        print("  raw value was compared as if normalized. This is a code defect -- do not")
+        print("  trust any number in this report until it's fixed.")
+    if measured_incoherence:
+        print("\n  Measured incoherence: one or more model runs (or the ensemble, which")
+        print("  inherits it) violated a row/column/champion constraint. This is the")
+        print("  benchmark's actual finding, not a tooling error.")
+    return pipeline_error
     return any_error
 
 
@@ -751,8 +812,8 @@ def main() -> int:
 
     if args.command == "coherence":
         _print_coherence(runs, args.tol)
-        scale_error = _print_scale_diagnostics(scale_diagnostics(runs, args.odds))
-        return 1 if scale_error else 0
+        pipeline_error = _print_scale_diagnostics(scale_diagnostics(runs, args.odds))
+        return 1 if pipeline_error else 0
 
     results = load_results(args.results)
     if not results:
@@ -814,8 +875,8 @@ def main() -> int:
         print(f"  advance Brier: {fmt(binary_advance_brier(teams, results))}")
         print(f"  champion Brier: {fmt(champion_brier(teams, champion))}")
 
-    scale_error = _print_scale_diagnostics(scale_diagnostics(runs, args.odds))
-    return 1 if scale_error else 0
+    pipeline_error = _print_scale_diagnostics(scale_diagnostics(runs, args.odds))
+    return 1 if pipeline_error else 0
 
 
 if __name__ == "__main__":

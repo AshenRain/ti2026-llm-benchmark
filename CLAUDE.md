@@ -70,7 +70,7 @@ Each model returns a 16×6 matrix plus a champion column. Rows sum to 1. Columns
 ```
 context_pack.md    frozen model input
 prompt.md          exact prompt sent, with paste marker
-runs/              {model}_{run}.json, raw and unedited
+runs/              {model}_run_{run}.json, raw and unedited
 odds.csv           bookmaker snapshot, 2026-08-12
 results.csv        actual outcomes, filled after 08-23
 score.py           scoring and charts
