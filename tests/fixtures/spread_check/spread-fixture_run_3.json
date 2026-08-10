@@ -1,0 +1,197 @@
+{
+  "reasoning": "Synthetic spread-check fixture, run 3/3. Every team's w4_l0, w4_l1 and p_champion are jittered by the same +/-0.03 pattern across the three runs, and the other four Swiss buckets are held constant, so the cross-run noise floor is known exactly: 0.03*sqrt(2/3) for the jittered columns, 0 for the constant ones.",
+  "teams": [
+    {
+      "team": "Team Yandex",
+      "swiss": {
+        "w4_l0": 0.0925,
+        "w4_l1": 0.095,
+        "w4_l2": 0.3125,
+        "w2_l4": 0.3125,
+        "w1_l4": 0.125,
+        "w0_l4": 0.0625
+      },
+      "p_champion": 0.0925
+    },
+    {
+      "team": "BoomBoys",
+      "swiss": {
+        "w4_l0": 0.0925,
+        "w4_l1": 0.095,
+        "w4_l2": 0.3125,
+        "w2_l4": 0.3125,
+        "w1_l4": 0.125,
+        "w0_l4": 0.0625
+      },
+      "p_champion": 0.0925
+    },
+    {
+      "team": "Team Falcons",
+      "swiss": {
+        "w4_l0": 0.0925,
+        "w4_l1": 0.095,
+        "w4_l2": 0.3125,
+        "w2_l4": 0.3125,
+        "w1_l4": 0.125,
+        "w0_l4": 0.0625
+      },
+      "p_champion": 0.0925
+    },
+    {
+      "team": "Team Liquid",
+      "swiss": {
+        "w4_l0": 0.0925,
+        "w4_l1": 0.095,
+        "w4_l2": 0.3125,
+        "w2_l4": 0.3125,
+        "w1_l4": 0.125,
+        "w0_l4": 0.0625
+      },
+      "p_champion": 0.0925
+    },
+    {
+      "team": "1win Team",
+      "swiss": {
+        "w4_l0": 0.0925,
+        "w4_l1": 0.095,
+        "w4_l2": 0.3125,
+        "w2_l4": 0.3125,
+        "w1_l4": 0.125,
+        "w0_l4": 0.0625
+      },
+      "p_champion": 0.0925
+    },
+    {
+      "team": "Xtreme Gaming",
+      "swiss": {
+        "w4_l0": 0.0925,
+        "w4_l1": 0.095,
+        "w4_l2": 0.3125,
+        "w2_l4": 0.3125,
+        "w1_l4": 0.125,
+        "w0_l4": 0.0625
+      },
+      "p_champion": 0.0925
+    },
+    {
+      "team": "Aurora Gaming",
+      "swiss": {
+        "w4_l0": 0.0925,
+        "w4_l1": 0.095,
+        "w4_l2": 0.3125,
+        "w2_l4": 0.3125,
+        "w1_l4": 0.125,
+        "w0_l4": 0.0625
+      },
+      "p_champion": 0.0925
+    },
+    {
+      "team": "Team Vision",
+      "swiss": {
+        "w4_l0": 0.0925,
+        "w4_l1": 0.095,
+        "w4_l2": 0.3125,
+        "w2_l4": 0.3125,
+        "w1_l4": 0.125,
+        "w0_l4": 0.0625
+      },
+      "p_champion": 0.0925
+    },
+    {
+      "team": "Team Spirit",
+      "swiss": {
+        "w4_l0": 0.0925,
+        "w4_l1": 0.095,
+        "w4_l2": 0.3125,
+        "w2_l4": 0.3125,
+        "w1_l4": 0.125,
+        "w0_l4": 0.0625
+      },
+      "p_champion": 0.0925
+    },
+    {
+      "team": "Nigma Galaxy",
+      "swiss": {
+        "w4_l0": 0.0925,
+        "w4_l1": 0.095,
+        "w4_l2": 0.3125,
+        "w2_l4": 0.3125,
+        "w1_l4": 0.125,
+        "w0_l4": 0.0625
+      },
+      "p_champion": 0.0925
+    },
+    {
+      "team": "HULIGANI",
+      "swiss": {
+        "w4_l0": 0.0925,
+        "w4_l1": 0.095,
+        "w4_l2": 0.3125,
+        "w2_l4": 0.3125,
+        "w1_l4": 0.125,
+        "w0_l4": 0.0625
+      },
+      "p_champion": 0.0925
+    },
+    {
+      "team": "Vici Gaming",
+      "swiss": {
+        "w4_l0": 0.0925,
+        "w4_l1": 0.095,
+        "w4_l2": 0.3125,
+        "w2_l4": 0.3125,
+        "w1_l4": 0.125,
+        "w0_l4": 0.0625
+      },
+      "p_champion": 0.0925
+    },
+    {
+      "team": "Team Resilience",
+      "swiss": {
+        "w4_l0": 0.0925,
+        "w4_l1": 0.095,
+        "w4_l2": 0.3125,
+        "w2_l4": 0.3125,
+        "w1_l4": 0.125,
+        "w0_l4": 0.0625
+      },
+      "p_champion": 0.0925
+    },
+    {
+      "team": "OG",
+      "swiss": {
+        "w4_l0": 0.0925,
+        "w4_l1": 0.095,
+        "w4_l2": 0.3125,
+        "w2_l4": 0.3125,
+        "w1_l4": 0.125,
+        "w0_l4": 0.0625
+      },
+      "p_champion": 0.0925
+    },
+    {
+      "team": "GamerLegion",
+      "swiss": {
+        "w4_l0": 0.0925,
+        "w4_l1": 0.095,
+        "w4_l2": 0.3125,
+        "w2_l4": 0.3125,
+        "w1_l4": 0.125,
+        "w0_l4": 0.0625
+      },
+      "p_champion": 0.0925
+    },
+    {
+      "team": "LGD Gaming",
+      "swiss": {
+        "w4_l0": 0.0925,
+        "w4_l1": 0.095,
+        "w4_l2": 0.3125,
+        "w2_l4": 0.3125,
+        "w1_l4": 0.125,
+        "w0_l4": 0.0625
+      },
+      "p_champion": 0.0925
+    }
+  ]
+}

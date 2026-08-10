@@ -378,7 +378,14 @@ def coherence_report(run: ParsedRun, tol: float = TOLERANCE) -> dict:
 def spread_across_runs(runs: list[ParsedRun]) -> dict:
     """Noise floor: stdev of each team's p_champion and per-bucket probs
     across runs of the same model. Runs where a team is absent are skipped
-    for that team, and the contributing count is reported."""
+    for that team, and the contributing count is reported.
+
+    Uses sample stdev (N-1), not population stdev (N): the model's runs are
+    a small sample drawn to estimate the model's true noise, not the full
+    population of interest -- see CLAUDE.md. With N=3, population stdev
+    understates this by a factor of sqrt(3/2) (~1.225x), which would
+    overstate the significance of any between-model gap compared against
+    it."""
     ok_runs = [r for r in runs if r.ok]
     result = {}
     for team in TEAMS:
@@ -390,15 +397,31 @@ def spread_across_runs(runs: list[ParsedRun]) -> dict:
                     if team in r.teams and not math.isnan(r.teams[team]["swiss"][bucket])]
             bucket_spread[bucket] = {
                 "n": len(vals),
-                "stdev": statistics.pstdev(vals) if len(vals) > 1 else 0.0,
+                "stdev": statistics.stdev(vals) if len(vals) > 1 else 0.0,
             }
         result[team] = {
             "p_champion": {
                 "n": len(champ_vals),
-                "stdev": statistics.pstdev(champ_vals) if len(champ_vals) > 1 else 0.0,
+                "stdev": statistics.stdev(champ_vals) if len(champ_vals) > 1 else 0.0,
             },
             "swiss": bucket_spread,
         }
+    return result
+
+
+def noise_floor(spread: dict) -> dict:
+    """Reduces spread_across_runs()'s per-team breakdown to the model-level
+    noise floor CLAUDE.md calls for: for p_champion and each of the six
+    Swiss buckets, the mean -- across the 16 teams -- of that team's own
+    stdev across the model's runs. This is NOT the spread of the 16 teams'
+    values within a single run (that would answer a different question:
+    how much teams differ from each other, not how noisy repeat-running
+    the same model is)."""
+    champ_stdevs = [v["p_champion"]["stdev"] for v in spread.values() if v["p_champion"]["n"] > 1]
+    result = {"p_champion": statistics.fmean(champ_stdevs) if champ_stdevs else None}
+    for bucket in BUCKETS:
+        vals = [v["swiss"][bucket]["stdev"] for v in spread.values() if v["swiss"][bucket]["n"] > 1]
+        result[bucket] = statistics.fmean(vals) if vals else None
     return result
 
 
@@ -786,14 +809,17 @@ def _print_coherence(runs: list[ParsedRun], tol: float) -> None:
               f"(level1={s['n_level1']}, level2={s['n_level2']}, unrecoverable={s['n_level3']})")
 
     print("\n--- spread across runs (noise floor), by model ---")
+    print("    for each team: sample stdev (N-1) of its value across the model's runs; then mean over the 16 teams")
     for model, model_runs in group_by_model(runs).items():
         if len(model_runs) < 2:
             continue
-        spread = spread_across_runs(model_runs)
-        champ_stdevs = [v["p_champion"]["stdev"] for v in spread.values() if v["p_champion"]["n"] > 1]
-        if champ_stdevs:
-            print(f"  {model}: mean stdev(p_champion) across {len(model_runs)} runs = "
-                  f"{statistics.fmean(champ_stdevs):.4f}")
+        floor = noise_floor(spread_across_runs(model_runs))
+        print(f"\n  {model} ({len(model_runs)} runs):")
+        if floor["p_champion"] is not None:
+            print(f"    p_champion: {floor['p_champion']:.4f}")
+        for bucket in BUCKETS:
+            if floor[bucket] is not None:
+                print(f"    swiss[{bucket}]: {floor[bucket]:.4f}")
 
 
 def main() -> int:
