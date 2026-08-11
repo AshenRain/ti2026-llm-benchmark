@@ -77,6 +77,24 @@ TEAM_SYNONYMS = {
     "lgd": "LGD Gaming",
 }
 
+# These three strings are copied verbatim from context_pack.md's own team
+# section headers (e.g. "**BoomBoys / BetBoom Team** -- Kiritych, ..."). A
+# model that returns exactly this text followed prompt.md's "use the exact
+# team names listed in the briefing" to the letter -- the briefing itself
+# presents these particular teams under two textual forms (a compact
+# section header and, separately, an explicit "X plays as Y" sentence), and
+# prompt.md never enumerates a canonical list to disambiguate which one to
+# use. That is a gap in our spec, not a model error, so resolving one of
+# these must NOT count as a "repair" or downgrade parse_level -- see
+# CLAUDE.md. Keep this table narrow: only the literal headers, not general
+# shorthand (that's TEAM_SYNONYMS, which the model was never instructed to
+# produce and so IS treated as a repair).
+TEAM_SPEC_AMBIGUITY = {
+    "boomboys / betboom team": "BoomBoys",
+    "team vision / parivision": "Team Vision",
+    "huligani (ex-l1ga team)": "HULIGANI",
+}
+
 # Key names a model might use instead of the ones specified in prompt.md.
 # Resolving any of these (or even just a case/spacing variant of the
 # canonical key) is a mechanical repair.
@@ -95,10 +113,14 @@ CHAMPION_ALIASES = {"p_champion", "champion_probability", "win_probability", "p_
 @dataclass
 class ParsedRun:
     """parse_level:
-      1 - valid JSON, every key and team name exactly as specified
+      1 - valid JSON, every key and team name exactly as specified, OR
+          resolved only via TEAM_SPEC_AMBIGUITY (see spec_ambiguities --
+          that's a gap in our spec, not a format violation)
       2 - recovered mechanically (markdown fences / surrounding prose,
-          key-name variants, team-name variants); usable, but a format
-          violation -- see coherence_report()'s "format_violation" flag
+          key-name variants, TEAM_SYNONYMS-style team-name variants) or
+          contains a team name that couldn't be resolved at all (see
+          unknown_teams); usable, but a format violation -- see
+          coherence_report()'s "format_violation" flag
       3 - not recoverable; excluded from scoring (ok=False)
     """
     path: Path
@@ -108,6 +130,7 @@ class ParsedRun:
     parse_level: int = 3
     parse_error: str | None = None
     repairs: list = field(default_factory=list)
+    spec_ambiguities: list = field(default_factory=list)
     teams: dict = field(default_factory=dict)   # team -> {"swiss": {bucket: prob}, "p_champion": float}
     missing_teams: list = field(default_factory=list)
     unknown_teams: list = field(default_factory=list)
@@ -162,20 +185,33 @@ def _resolve_bucket_key(raw_key: str) -> tuple:
 
 
 def _resolve_team_name(raw: str) -> tuple:
-    """Returns (resolved_name, was_a_repair). If unresolved, resolved_name
-    is the raw string as given (it will surface via unknown_teams)."""
+    """Returns (resolved_name, kind). kind is one of:
+      "exact"          -- already canonical, verbatim
+      "case"           -- canonical name, differs only in case/spacing
+      "spec_ambiguity" -- matches a context_pack.md team-section header
+                          verbatim (TEAM_SPEC_AMBIGUITY); a gap in our
+                          spec, not a model error -- must not affect
+                          parse_level
+      "synonym"        -- resolved via the general legacy/shorthand table
+                          (TEAM_SYNONYMS); the model normalized on its own
+                          initiative, which is a real repair
+      "unresolved"     -- no match anywhere; resolved_name == raw, and it
+                          will surface via unknown_teams
+    """
     if raw in TEAMS:
-        return raw, False
+        return raw, "exact"
     lowered = raw.strip().lower()
     for team in TEAMS:
         if team.lower() == lowered:
-            return team, True
+            return team, "case"
+    if lowered in TEAM_SPEC_AMBIGUITY:
+        return TEAM_SPEC_AMBIGUITY[lowered], "spec_ambiguity"
     if lowered in TEAM_SYNONYMS:
-        return TEAM_SYNONYMS[lowered], True
-    return raw, False
+        return TEAM_SYNONYMS[lowered], "synonym"
+    return raw, "unresolved"
 
 
-def _process_team_entry(entry: dict, repairs: list) -> tuple:
+def _process_team_entry(entry: dict, repairs: list, spec_ambiguities: list) -> tuple:
     """Returns (resolved_team_name_or_None, swiss_dict, p_champion)."""
     team_key, team_key_repair = _find_aliased_key(entry, TEAM_NAME_ALIASES, "team")
     if team_key is None or not isinstance(entry.get(team_key), str):
@@ -184,9 +220,17 @@ def _process_team_entry(entry: dict, repairs: list) -> tuple:
         repairs.append(f"team-name key '{team_key}' resolved to 'team'")
 
     raw_name = entry[team_key]
-    resolved_name, name_repair = _resolve_team_name(raw_name)
-    if name_repair:
+    resolved_name, name_kind = _resolve_team_name(raw_name)
+    if name_kind in ("case", "synonym"):
         repairs.append(f"team name '{raw_name}' resolved to '{resolved_name}'")
+    elif name_kind == "spec_ambiguity":
+        spec_ambiguities.append(
+            f"team name '{raw_name}' resolved to '{resolved_name}' "
+            "(matches a context_pack.md section header verbatim -- the briefing "
+            "presents this team under two textual forms, prompt.md doesn't say which "
+            "to use)")
+    # "exact": nothing to log. "unresolved": nothing to log here either --
+    # it surfaces via unknown_teams, which parse_run_file folds into parse_level.
 
     swiss_key, swiss_key_repair = _find_aliased_key(entry, SWISS_ALIASES, "swiss")
     swiss_raw = entry.get(swiss_key) if swiss_key else None
@@ -249,6 +293,7 @@ def parse_run_file(path: Path) -> ParsedRun:
                           parse_error="top-level JSON is not an object")
 
     repairs: list = []
+    spec_ambiguities: list = []
     if extraction_repair:
         repairs.append("extracted JSON object from surrounding text (markdown fences and/or prose)")
 
@@ -264,7 +309,7 @@ def parse_run_file(path: Path) -> ParsedRun:
     for entry in teams_field:
         if not isinstance(entry, dict):
             continue
-        name, swiss, p_champion = _process_team_entry(entry, repairs)
+        name, swiss, p_champion = _process_team_entry(entry, repairs, spec_ambiguities)
         if name is None:
             continue
         teams[name] = {"swiss": swiss, "p_champion": p_champion}
@@ -278,9 +323,16 @@ def parse_run_file(path: Path) -> ParsedRun:
     missing_teams = sorted(known - seen)
     unknown_teams = sorted(seen - known)
 
-    parse_level = 2 if repairs else 1
+    # A team name that resolved via TEAM_SPEC_AMBIGUITY doesn't count against
+    # parse_level (it's a spec gap, not a model error). But one that never
+    # resolved at all -- still sitting in unknown_teams under its raw,
+    # unrecognized name -- must: silently leaving it at level 1 would hide a
+    # team that's effectively lost to every canonical-name lookup downstream
+    # (ensemble, spread).
+    parse_level = 2 if (repairs or unknown_teams) else 1
     return ParsedRun(path, model, run_id, ok=True, parse_level=parse_level, repairs=repairs,
-                      teams=teams, missing_teams=missing_teams, unknown_teams=unknown_teams)
+                      spec_ambiguities=spec_ambiguities, teams=teams,
+                      missing_teams=missing_teams, unknown_teams=unknown_teams)
 
 
 def load_runs(runs_dir: Path) -> list[ParsedRun]:
@@ -364,6 +416,7 @@ def coherence_report(run: ParsedRun, tol: float = TOLERANCE) -> dict:
         "parse_level": run.parse_level,
         "format_violation": run.parse_level == 2,
         "repairs": run.repairs,
+        "spec_ambiguities": run.spec_ambiguities,
         "missing_teams": run.missing_teams,
         "unknown_teams": run.unknown_teams,
         "row_deviation_max": max(row_dev.values(), default=math.nan),
@@ -793,10 +846,14 @@ def _print_coherence(runs: list[ParsedRun], tol: float) -> None:
             print("  repairs applied:")
             for repair in _summarize_repairs(report["repairs"]):
                 print(f"    - {repair}")
+        if report["spec_ambiguities"]:
+            print("  spec ambiguities (name resolved; does not affect parse_level):")
+            for note in _summarize_repairs(report["spec_ambiguities"]):
+                print(f"    - {note}")
         if report["missing_teams"]:
             print(f"  missing teams: {report['missing_teams']}")
         if report["unknown_teams"]:
-            print(f"  unknown teams: {report['unknown_teams']}")
+            print(f"  unknown teams (unresolved -- this pushed parse_level to 2): {report['unknown_teams']}")
         print(f"  row deviation (max): {report['row_deviation_max']:.4f}")
         print(f"  column deviation (max): {report['column_deviation_max']:.4f}")
         print(f"  champion deviation: {report['champion_deviation']:.4f}")
@@ -807,6 +864,12 @@ def _print_coherence(runs: list[ParsedRun], tol: float) -> None:
     for model, s in parse_summary(runs).items():
         print(f"  {model}: n={s['n_usable']}/{s['n_total']} parsed "
               f"(level1={s['n_level1']}, level2={s['n_level2']}, unrecoverable={s['n_level3']})")
+
+    all_spec_ambiguities = sorted({note for run in runs for note in run.spec_ambiguities})
+    if all_spec_ambiguities:
+        print("\n--- spec ambiguities across all runs (for README disclosure) ---")
+        for note in all_spec_ambiguities:
+            print(f"  - {note}")
 
     print("\n--- spread across runs (noise floor), by model ---")
     print("    for each team: sample stdev (N-1) of its value across the model's runs; then mean over the 16 teams")
