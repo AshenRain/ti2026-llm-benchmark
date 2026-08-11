@@ -15,6 +15,7 @@ import argparse
 import csv
 import json
 import math
+import random
 import re
 import statistics
 from collections import Counter, defaultdict
@@ -809,6 +810,118 @@ def reliability_bins(pairs: list, bin_size: float = 0.1) -> list:
 
 
 # ---------------------------------------------------------------------------
+# Charts
+# ---------------------------------------------------------------------------
+#
+# matplotlib is the one non-stdlib dependency in this project (see
+# requirements.txt), imported lazily here so `coherence`/`score` keep
+# working without it installed. Colors are the validated categorical
+# palette from the dataviz skill (references/palette.md): this specific
+# 5-of-8 ordering (blue, yellow, magenta, green, violet) is the one that
+# clears the all-pairs CVD and normal-vision floors for a scatter-style
+# chart -- `node scripts/validate_palette.js "<hexes>" --mode light
+# --pairs all` confirms it (worst CVD ΔE 13.0, worst normal-vision ΔE
+# 16.3). Model identity is doubly encoded (color + marker shape) so it
+# never rests on color alone.
+
+MODEL_ORDER = ["opus5", "gpt_sol5_6", "grok4_5", "deepseek_chat_search-on", "gemini_flash_lite"]
+MODEL_COLORS = {
+    "opus5": "#2a78d6",
+    "gpt_sol5_6": "#eda100",
+    "grok4_5": "#e87ba4",
+    "deepseek_chat_search-on": "#008300",
+    "gemini_flash_lite": "#4a3aa7",
+}
+MODEL_MARKERS = {
+    "opus5": "o",
+    "gpt_sol5_6": "s",
+    "grok4_5": "^",
+    "deepseek_chat_search-on": "D",
+    "gemini_flash_lite": "P",
+}
+
+CHART_SURFACE = "#fcfcfb"
+CHART_INK_PRIMARY = "#0b0b0b"
+CHART_INK_SECONDARY = "#52514e"
+CHART_GRIDLINE = "#e1e0d9"
+CHART_TARGET_COLOR = "#3a3a38"
+
+
+def plot_column_sums(runs: list[ParsedRun], output_path: Path) -> None:
+    """One point per (model, run, bucket): the six Swiss-bucket column
+    sums, against a horizontal target mark at each bucket's fixed
+    occupancy (1, 2, 5, 5, 2, 1). Three points per model per bucket (one
+    per run); models are dodged apart within each bucket and a small fixed
+    -seed jitter keeps near-identical repeat runs from fully overlapping,
+    without touching the y-value (the actual data). Unrecoverable (level
+    3) runs contribute nothing, matching every other report in this file.
+
+    Deterministic and self-contained: run this function (or `py score.py
+    charts`) against the same runs/ and it reproduces the same PNG."""
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    ok_runs = [r for r in runs if r.ok]
+    by_model = group_by_model(ok_runs)
+    models_present = [m for m in MODEL_ORDER if m in by_model]
+    models_present += sorted(m for m in by_model if m not in MODEL_ORDER)
+
+    n_models = max(len(models_present), 1)
+    dodge = [(-0.32 + 0.64 * i / (n_models - 1)) if n_models > 1 else 0.0 for i in range(n_models)]
+    rng = random.Random(0)
+
+    fig, ax = plt.subplots(figsize=(8.2, 9.6), dpi=200)
+    fig.patch.set_facecolor(CHART_SURFACE)
+    ax.set_facecolor(CHART_SURFACE)
+
+    for bi, bucket in enumerate(BUCKETS):
+        target = BUCKET_OCCUPANCY[bucket]
+        ax.hlines(target, bi - 0.4, bi + 0.4, colors=CHART_TARGET_COLOR, linewidth=3.5, zorder=2)
+
+    for model, offset in zip(models_present, dodge):
+        color = MODEL_COLORS.get(model, CHART_INK_SECONDARY)
+        marker = MODEL_MARKERS.get(model, "o")
+        xs, ys = [], []
+        for bi, bucket in enumerate(BUCKETS):
+            for run in by_model[model]:
+                vals = [info["swiss"][bucket] for info in run.teams.values() if not math.isnan(info["swiss"][bucket])]
+                xs.append(bi + offset + (rng.random() - 0.5) * 0.06)
+                ys.append(sum(vals))
+        ax.scatter(xs, ys, s=130, color=color, marker=marker, edgecolors=CHART_INK_PRIMARY,
+                   linewidths=0.9, alpha=0.88, label=model, zorder=3)
+
+    ax.set_xticks(range(len(BUCKETS)))
+    ax.set_xticklabels(BUCKETS, fontsize=16)
+    ax.set_xlim(-0.6, len(BUCKETS) - 0.4)
+    ax.set_xlabel("Swiss bucket", fontsize=18, color=CHART_INK_PRIMARY, labelpad=12)
+    ax.set_ylabel("column sum", fontsize=18, color=CHART_INK_PRIMARY, labelpad=12)
+    ax.set_title("Swiss bucket column sums vs. target occupancy", fontsize=20,
+                 color=CHART_INK_PRIMARY, pad=18, fontweight="bold", wrap=True)
+
+    ax.tick_params(axis="both", labelsize=15, colors=CHART_INK_SECONDARY)
+    ax.grid(axis="y", color=CHART_GRIDLINE, linewidth=1, zorder=0)
+    ax.set_axisbelow(True)
+    for side in ("top", "right"):
+        ax.spines[side].set_visible(False)
+    for side in ("left", "bottom"):
+        ax.spines[side].set_color(CHART_GRIDLINE)
+
+    handles, labels = ax.get_legend_handles_labels()
+    target_handle = plt.Line2D([], [], color=CHART_TARGET_COLOR, linewidth=3.5)
+    handles.append(target_handle)
+    labels.append("target")
+    ax.legend(handles, labels, fontsize=14, loc="upper center", bbox_to_anchor=(0.5, -0.14),
+              ncol=2, frameon=False, labelcolor=CHART_INK_PRIMARY, handletextpad=0.6,
+              columnspacing=1.4)
+
+    fig.tight_layout()
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(output_path, facecolor=CHART_SURFACE, bbox_inches="tight")
+    plt.close(fig)
+
+
+# ---------------------------------------------------------------------------
 # CLI
 # ---------------------------------------------------------------------------
 
@@ -887,16 +1000,23 @@ def _print_coherence(runs: list[ParsedRun], tol: float) -> None:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("command", choices=["coherence", "score"])
+    parser.add_argument("command", choices=["coherence", "score", "charts"])
     parser.add_argument("--runs-dir", type=Path, default=Path("runs"))
     parser.add_argument("--results", type=Path, default=Path("results.csv"))
     parser.add_argument("--odds", type=Path, default=Path("odds.csv"))
+    parser.add_argument("--charts-dir", type=Path, default=Path("charts"))
     parser.add_argument("--tol", type=float, default=TOLERANCE)
     args = parser.parse_args()
 
     runs = load_runs(args.runs_dir)
     if not runs:
         print(f"No run files found in {args.runs_dir}/")
+        return 0
+
+    if args.command == "charts":
+        out = args.charts_dir / "column_sums.png"
+        plot_column_sums(runs, out)
+        print(f"wrote {out}")
         return 0
 
     if args.command == "coherence":
