@@ -118,17 +118,15 @@ Averaging the fifteen runs together produces column sums of:
 |---|---|---|---|---|---|---|
 | 1.096 | 2.091 | 4.555 | 4.797 | 2.351 | 1.137 | 1.018 |
 
-against targets of 1, 2, 5, 5, 2, 1 and 1.0. The ensemble inherits the incoherence of its members. Averaging inconsistent forecasts does not restore consistency — it produces a forecast that is wrong by less, in the same direction, and still describes no possible tournament. Worth stating plainly, because "just ensemble it" is the standard reflex and the constraint violations here are structural, not random noise that cancels.
+against targets of 1, 2, 5, 5, 2, 1 and 1.0. Averaging does not restore coherence — the ensemble inherits the constraint violations of its inputs. The deviations shrink but keep their sign, so the averaged forecast lands closer to the targets while still describing no possible tournament. The violations are structural rather than independent noise, and averaging does not cancel them.
 
 ## Limitations
 
-Stated up front rather than buried, because several of them are real.
-
-- **Three runs per model is a small sample.** No model ranking is claimed from this data, and none should be read into it. Within-model spread is comparable to between-model differences on most quantities. Nothing in either LinkedIn post asserts one model beats another unless the gap exceeds the within-model spread.
-- **No canonical team-name list was put in the prompt.** `prompt.md` says to "use the exact team names listed in the briefing," but `context_pack.md` presents three teams under two textual forms each — a compact section header (`BoomBoys / BetBoom Team`, `Team Vision / PARIVISION`, `HULIGANI (ex-L1GA TEAM)`) and, separately, an explicit "X plays as Y" sentence — and never says which is *the* name. GPT Sol 5.6 returned the section-header form verbatim for all three; every other model normalised to the short form unprompted. **This is a gap in our specification, not a model error** — GPT followed the literal instruction. `score.py` maps exactly those three strings to canonical names via a `TEAM_SPEC_AMBIGUITY` table, and doing so does *not* downgrade the run's parse level and does *not* count as a repair. Every occurrence is logged and printed in the coherence report.
+- **Three runs per model is a small sample.** No model ranking is claimed from this data. What the three runs do support is that each model was consistent with itself: the within-model spread is reported above, and every comparison is made against it.
+- **The prompt did not fix a canonical team-name list.** The briefing presents three teams under two textual forms each and never says which is the name. GPT Sol 5.6 returned the section-header form literally; the other models normalised on their own initiative. This is a defect in the specification rather than a model error, so the names are resolved through a synonym table and the run's parse level is not downgraded.
 - **DeepSeek's expert mode is absent** because it has no web access, and web search was a condition of the run. The model here is the light chat model with search on.
-- **Google is represented by a light model.** The flagship Gemini is not available without payment, so `gemini_flash_lite` stands in. It is also the worst performer on coherence — those two facts should be read together, and no conclusion about Google's frontier model follows from this data.
-- **Web search was available to all five models and used by none of them.** The intended contrast between searching and non-searching models therefore did not materialise. Everything below is knowledge-cutoff forecasting plus the briefing.
+- **Google is represented by a light model.** The flagship Gemini is not available without payment, so `gemini_flash_lite` stands in.
+- **Web search was available to all five models and used by none of them.** The intended contrast between searching and non-searching models did not materialise; all fifteen forecasts are knowledge-cutoff reasoning plus the briefing.
 - **The context pack is knowingly incomplete.** Section 5 of `context_pack.md` enumerates its own gaps: no odds, no power rankings, no round-one pairings (unpublished at freeze), and only one fully tabulated tier-1 event because aggregator sources contradicted each other on the rest.
 - **Runs are not temperature-controlled.** Chat interfaces do not expose the setting. The GPT runs were additionally produced by a third party on their own account, so those settings are not under our control at all.
 
@@ -157,7 +155,7 @@ py tests/test_coherence.py       # and the other test_*.py in tests/
 
 `charts` is the only command with a dependency — `pip install -r requirements.txt` (matplotlib).
 
-Every number in this README and in both LinkedIn posts comes out of `score.py`. All reported probabilities are normalised; raw values such as `1/decimal_odds` before overround is divided out appear only in the scale-diagnostics table, which prints every probability column's sum and errors if a column marked normalised misses its expected total by more than `1e-6`.
+Every number in this README comes out of `score.py`. All reported probabilities are normalised; raw values such as `1/decimal_odds` before overround is divided out appear only in the scale-diagnostics table, which prints every probability column's sum and errors if a column marked normalised misses its expected total by more than `1e-6`.
 
 ## Repo layout
 
