@@ -1,0 +1,197 @@
+{
+"reasoning": "The Swiss stage features 16 teams and concludes when teams achieve 4 wins (8 teams advance) or 4 losses (8 eliminated). Based on the briefing, recent Esports World Cup (EWC) placements, and tier-1 tournament wins in 2026, the elite tier comprises Team Vision, BoomBoys, Team Yandex, and Team Falcons. Team Vision won the EWC and DreamLeague 29, while BoomBoys won PGL Wallachia 8 and placed second at EWC. Team Yandex and Team Falcons also show strong consistency. Mid-tier contenders like Team Spirit, Xtreme Gaming, Aurora Gaming, and Team Liquid possess deep playoff experience, though some suffered early exits at the EWC. Dark horses and qualifiers such as Vici Gaming (4th at EWC), Nigma Galaxy, 1win Team, and LGD Gaming (boosted by Topson's late stand-in addition) are expected to fight through the mid-brackets. Lower-tier or less seasoned rosters like GamerLegion, OG, Team Resilience, and HULIGANI are projected to occupy the elimination buckets. Probabilities are distributed to strictly respect the exact bucket counts (1, 2, 5, 5, 2, 1), unit sums for each team, and champion probabilities summing to 1.0.",
+"teams": [
+{
+"team": "Team Vision",
+"swiss": {
+"w4_l0": 0.35,
+"w4_l1": 0.35,
+"w4_l2": 0.20,
+"w2_l4": 0.08,
+"w1_l4": 0.02,
+"w0_l4": 0.00
+},
+"p_champion": 0.18
+},
+{
+"team": "BoomBoys",
+"swiss": {
+"w4_l0": 0.25,
+"w4_l1": 0.35,
+"w4_l2": 0.25,
+"w2_l4": 0.12,
+"w1_l4": 0.03,
+"w0_l4": 0.00
+},
+"p_champion": 0.14
+},
+{
+"team": "Team Yandex",
+"swiss": {
+"w4_l0": 0.20,
+"w4_l1": 0.30,
+"w4_l2": 0.30,
+"w2_l4": 0.15,
+"w1_l4": 0.05,
+"w0_l4": 0.00
+},
+"p_champion": 0.11
+},
+{
+"team": "Team Falcons",
+"swiss": {
+"w4_l0": 0.12,
+"w4_l1": 0.25,
+"w4_l2": 0.35,
+"w2_l4": 0.20,
+"w1_l4": 0.08,
+"w0_l4": 0.00
+},
+"p_champion": 0.10
+},
+{
+"team": "Team Spirit",
+"swiss": {
+"w4_l0": 0.05,
+"w4_l1": 0.20,
+"w4_l2": 0.40,
+"w2_l4": 0.25,
+"w1_l4": 0.10,
+"w0_l4": 0.00
+},
+"p_champion": 0.08
+},
+{
+"team": "Aurora Gaming",
+"swiss": {
+"w4_l0": 0.02,
+"w4_l1": 0.15,
+"w4_l2": 0.45,
+"w2_l4": 0.28,
+"w1_l4": 0.10,
+"w0_l4": 0.00
+},
+"p_champion": 0.06
+},
+{
+"team": "Team Liquid",
+"swiss": {
+"w4_l0": 0.01,
+"w4_l1": 0.12,
+"w4_l2": 0.45,
+"w2_l4": 0.32,
+"w1_l4": 0.10,
+"w0_l4": 0.00
+},
+"p_champion": 0.06
+},
+{
+"team": "Xtreme Gaming",
+"swiss": {
+"w4_l0": 0.00,
+"w4_l1": 0.08,
+"w4_l2": 0.50,
+"w2_l4": 0.30,
+"w1_l4": 0.12,
+"w0_l4": 0.00
+},
+"p_champion": 0.05
+},
+{
+"team": "Vici Gaming",
+"swiss": {
+"w4_l0": 0.00,
+"w4_l1": 0.05,
+"w4_l2": 0.40,
+"w2_l4": 0.40,
+"w1_l4": 0.15,
+"w0_l4": 0.00
+},
+"p_champion": 0.05
+},
+{
+"team": "Nigma Galaxy",
+"swiss": {
+"w4_l0": 0.00,
+"w4_l1": 0.03,
+"w4_l2": 0.35,
+"w2_l4": 0.45,
+"w1_l4": 0.17,
+"w0_l4": 0.00
+},
+"p_champion": 0.04
+},
+{
+"team": "1win Team",
+"swiss": {
+"w4_l0": 0.00,
+"w4_l1": 0.02,
+"w4_l2": 0.30,
+"w2_l4": 0.48,
+"w1_l4": 0.20,
+"w0_l4": 0.00
+},
+"p_champion": 0.03
+},
+{
+"team": "LGD Gaming",
+"swiss": {
+"w4_l0": 0.00,
+"w4_l1": 0.00,
+"w4_l2": 0.20,
+"w2_l4": 0.55,
+"w1_l4": 0.22,
+"w0_l4": 0.03
+},
+"p_champion": 0.03
+},
+{
+"team": "OG",
+"swiss": {
+"w4_l0": 0.00,
+"w4_l1": 0.00,
+"w4_l2": 0.10,
+"w2_l4": 0.58,
+"w1_l4": 0.30,
+"w0_l4": 0.02
+},
+"p_champion": 0.02
+},
+{
+"team": "GamerLegion",
+"swiss": {
+"w4_l0": 0.00,
+"w4_l1": 0.00,
+"w4_l2": 0.05,
+"w2_l4": 0.40,
+"w1_l4": 0.50,
+"w0_l4": 0.05
+},
+"p_champion": 0.01
+},
+{
+"team": "Team Resilience",
+"swiss": {
+"w4_l0": 0.00,
+"w4_l1": 0.00,
+"w4_l2": 0.00,
+"w2_l4": 0.24,
+"w1_l4": 0.65,
+"w0_l4": 0.11
+},
+"p_champion": 0.01
+},
+{
+"team": "HULIGANI",
+"swiss": {
+"w4_l0": 0.00,
+"w4_l1": 0.00,
+"w4_l2": 0.00,
+"w2_l4": 0.10,
+"w1_l4": 0.50,
+"w0_l4": 0.80
+},
+"p_champion": 0.00
+}
+]
+}

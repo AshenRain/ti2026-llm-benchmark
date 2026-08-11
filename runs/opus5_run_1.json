@@ -1,0 +1,197 @@
+{
+  "reasoning": "I ranked teams on recent tier-1 form, weighted heavily toward the Esports World Cup (the only verifiable like-for-like table, and the most recent major). Team Vision, Yandex and BoomBoys form the top layer: EWC podium plus 2026 titles. Spirit sits with them despite a modest EWC — a two-time TI winner with a clean European qualifier and a documented history of peaking on the TI patch. Falcons are defending champions with an unchanged roster but a mediocre year and a 0-2 EWC quarterfinal exit to Vici; I keep them upper-middle rather than top. Liquid, Aurora, Vici and Xtreme are the volatile middle: Aurora collect runner-up finishes without titles, Vici's EWC fourth is real but from a single event, Xtreme underperformed at EWC yet remain the strongest Chinese org on home soil. Nigma, 1win and LGD are coinflips to advance; LGD are downgraded because Topson has not played competitively since TI 2024 and joined days before the event, which is a serious drag on a Bo1-heavy Swiss opening. OG and Resilience are below-median, Resilience unrated at tier-1 as a unit. HULIGANI and GamerLegion are clear bottom: last place at EWC and no top-eight tier-1 results respectively. Swiss with Bo1 early rounds compresses everything — even the best team is only ~11-12% to run 4-0, and no team is above ~72% to advance or below ~15%. Champion odds are advance probability times a conditional strength factor, with a bump for Spirit and Falcons (Bo5 playoff pedigree) and a discount for teams whose resume rests on one deep run. The heavy mass in w4_l2 and w2_l4 reflects that the format's middle buckets hold ten of sixteen teams.",
+  "teams": [
+    {
+      "team": "Team Vision",
+      "swiss": {
+        "w4_l0": 0.115,
+        "w4_l1": 0.204,
+        "w4_l2": 0.401,
+        "w2_l4": 0.219,
+        "w1_l4": 0.045,
+        "w0_l4": 0.016
+      },
+      "p_champion": 0.132
+    },
+    {
+      "team": "Team Yandex",
+      "swiss": {
+        "w4_l0": 0.110,
+        "w4_l1": 0.199,
+        "w4_l2": 0.391,
+        "w2_l4": 0.232,
+        "w1_l4": 0.050,
+        "w0_l4": 0.018
+      },
+      "p_champion": 0.122
+    },
+    {
+      "team": "BoomBoys",
+      "swiss": {
+        "w4_l0": 0.105,
+        "w4_l1": 0.193,
+        "w4_l2": 0.382,
+        "w2_l4": 0.240,
+        "w1_l4": 0.058,
+        "w0_l4": 0.022
+      },
+      "p_champion": 0.112
+    },
+    {
+      "team": "Team Spirit",
+      "swiss": {
+        "w4_l0": 0.095,
+        "w4_l1": 0.180,
+        "w4_l2": 0.375,
+        "w2_l4": 0.257,
+        "w1_l4": 0.067,
+        "w0_l4": 0.026
+      },
+      "p_champion": 0.117
+    },
+    {
+      "team": "Team Falcons",
+      "swiss": {
+        "w4_l0": 0.085,
+        "w4_l1": 0.169,
+        "w4_l2": 0.366,
+        "w2_l4": 0.275,
+        "w1_l4": 0.075,
+        "w0_l4": 0.030
+      },
+      "p_champion": 0.102
+    },
+    {
+      "team": "Team Liquid",
+      "swiss": {
+        "w4_l0": 0.075,
+        "w4_l1": 0.152,
+        "w4_l2": 0.353,
+        "w2_l4": 0.300,
+        "w1_l4": 0.085,
+        "w0_l4": 0.035
+      },
+      "p_champion": 0.078
+    },
+    {
+      "team": "Aurora Gaming",
+      "swiss": {
+        "w4_l0": 0.068,
+        "w4_l1": 0.141,
+        "w4_l2": 0.341,
+        "w2_l4": 0.311,
+        "w1_l4": 0.097,
+        "w0_l4": 0.042
+      },
+      "p_champion": 0.063
+    },
+    {
+      "team": "Vici Gaming",
+      "swiss": {
+        "w4_l0": 0.068,
+        "w4_l1": 0.141,
+        "w4_l2": 0.341,
+        "w2_l4": 0.312,
+        "w1_l4": 0.096,
+        "w0_l4": 0.042
+      },
+      "p_champion": 0.063
+    },
+    {
+      "team": "Xtreme Gaming",
+      "swiss": {
+        "w4_l0": 0.060,
+        "w4_l1": 0.128,
+        "w4_l2": 0.332,
+        "w2_l4": 0.325,
+        "w1_l4": 0.107,
+        "w0_l4": 0.048
+      },
+      "p_champion": 0.056
+    },
+    {
+      "team": "Nigma Galaxy",
+      "swiss": {
+        "w4_l0": 0.052,
+        "w4_l1": 0.114,
+        "w4_l2": 0.314,
+        "w2_l4": 0.337,
+        "w1_l4": 0.124,
+        "w0_l4": 0.059
+      },
+      "p_champion": 0.043
+    },
+    {
+      "team": "1win Team",
+      "swiss": {
+        "w4_l0": 0.047,
+        "w4_l1": 0.105,
+        "w4_l2": 0.298,
+        "w2_l4": 0.344,
+        "w1_l4": 0.139,
+        "w0_l4": 0.067
+      },
+      "p_champion": 0.038
+    },
+    {
+      "team": "LGD Gaming",
+      "swiss": {
+        "w4_l0": 0.042,
+        "w4_l1": 0.095,
+        "w4_l2": 0.283,
+        "w2_l4": 0.349,
+        "w1_l4": 0.155,
+        "w0_l4": 0.076
+      },
+      "p_champion": 0.028
+    },
+    {
+      "team": "OG",
+      "swiss": {
+        "w4_l0": 0.033,
+        "w4_l1": 0.078,
+        "w4_l2": 0.269,
+        "w2_l4": 0.359,
+        "w1_l4": 0.172,
+        "w0_l4": 0.089
+      },
+      "p_champion": 0.021
+    },
+    {
+      "team": "Team Resilience",
+      "swiss": {
+        "w4_l0": 0.028,
+        "w4_l1": 0.068,
+        "w4_l2": 0.254,
+        "w2_l4": 0.367,
+        "w1_l4": 0.185,
+        "w0_l4": 0.098
+      },
+      "p_champion": 0.017
+    },
+    {
+      "team": "HULIGANI",
+      "swiss": {
+        "w4_l0": 0.010,
+        "w4_l1": 0.019,
+        "w4_l2": 0.171,
+        "w2_l4": 0.376,
+        "w1_l4": 0.265,
+        "w0_l4": 0.159
+      },
+      "p_champion": 0.005
+    },
+    {
+      "team": "GamerLegion",
+      "swiss": {
+        "w4_l0": 0.007,
+        "w4_l1": 0.014,
+        "w4_l2": 0.129,
+        "w2_l4": 0.397,
+        "w1_l4": 0.280,
+        "w0_l4": 0.173
+      },
+      "p_champion": 0.003
+    }
+  ]
+}

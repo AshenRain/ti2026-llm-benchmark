@@ -1,0 +1,197 @@
+{
+"reasoning": "I weight the July Esports World Cup most heavily because it is the freshest near-complete field comparison, then season-long tier-1 results, roster continuity, qualifier performance, and major uncertainty factors. Team Vision / PARIVISION leads after its dominant EWC title; Team Yandex and BoomBoys follow on repeated 2026 finals and wins. Falcons retain substantial championship equity from roster continuity and the TI 2025 title despite weaker recent form. Spirit, Vici, Liquid, Aurora and Xtreme form the next tier, with Vici receiving a meaningful boost for its EWC run and 2-0 win over Falcons. LGD is downgraded versus its underlying roster quality because replacing TaiLung with Topson immediately before TI creates large coordination and form uncertainty, even though Topson's ceiling is high. Team Resilience gets credit for a flawless qualifier but is capped by limited top-level evidence. OG and GamerLegion remain outsiders based on recent tier-1 results; HULIGANI is the longest shot. Swiss probabilities are calibrated jointly, not independently, so the six column totals exactly match the format-implied bucket counts.",
+"teams": [
+{
+"team": "Team Yandex",
+"swiss": {
+"w4_l0": 0.138574,
+"w4_l1": 0.227308,
+"w4_l2": 0.4121,
+"w2_l4": 0.181448,
+"w1_l4": 0.033629,
+"w0_l4": 0.006941
+},
+"p_champion": 0.165
+},
+{
+"team": "BoomBoys / BetBoom Team",
+"swiss": {
+"w4_l0": 0.130548,
+"w4_l1": 0.220498,
+"w4_l2": 0.41296,
+"w2_l4": 0.191531,
+"w1_l4": 0.036671,
+"w0_l4": 0.007792
+},
+"p_champion": 0.15
+},
+{
+"team": "Team Falcons",
+"swiss": {
+"w4_l0": 0.094511,
+"w4_l1": 0.184771,
+"w4_l2": 0.407108,
+"w2_l4": 0.244883,
+"w1_l4": 0.055158,
+"w0_l4": 0.013569
+},
+"p_champion": 0.1
+},
+{
+"team": "Team Liquid",
+"swiss": {
+"w4_l0": 0.065521,
+"w4_l1": 0.148268,
+"w4_l2": 0.384322,
+"w2_l4": 0.29982,
+"w1_l4": 0.079449,
+"w0_l4": 0.02262
+},
+"p_champion": 0.065
+},
+{
+"team": "1win Team",
+"swiss": {
+"w4_l0": 0.036344,
+"w4_l1": 0.10093,
+"w4_l2": 0.328451,
+"w2_l4": 0.368739,
+"w1_l4": 0.122673,
+"w0_l4": 0.042863
+},
+"p_champion": 0.025
+},
+{
+"team": "Xtreme Gaming",
+"swiss": {
+"w4_l0": 0.047307,
+"w4_l1": 0.120339,
+"w4_l2": 0.355232,
+"w2_l4": 0.341201,
+"w1_l4": 0.102966,
+"w0_l4": 0.032955
+},
+"p_champion": 0.035
+},
+{
+"team": "Aurora Gaming",
+"swiss": {
+"w4_l0": 0.055879,
+"w4_l1": 0.134067,
+"w4_l2": 0.370851,
+"w2_l4": 0.321019,
+"w1_l4": 0.090779,
+"w0_l4": 0.027405
+},
+"p_champion": 0.045
+},
+{
+"team": "Team Vision / PARIVISION",
+"swiss": {
+"w4_l0": 0.191956,
+"w4_l1": 0.26419,
+"w4_l2": 0.39411,
+"w2_l4": 0.127018,
+"w1_l4": 0.019371,
+"w0_l4": 0.003355
+},
+"p_champion": 0.2
+},
+{
+"team": "Team Spirit",
+"swiss": {
+"w4_l0": 0.088146,
+"w4_l1": 0.177443,
+"w4_l2": 0.403877,
+"w2_l4": 0.255906,
+"w1_l4": 0.059546,
+"w0_l4": 0.015082
+},
+"p_champion": 0.085
+},
+{
+"team": "Nigma Galaxy",
+"swiss": {
+"w4_l0": 0.030207,
+"w4_l1": 0.088941,
+"w4_l2": 0.308876,
+"w2_l4": 0.384768,
+"w1_l4": 0.136602,
+"w0_l4": 0.050606
+},
+"p_champion": 0.017
+},
+{
+"team": "HULIGANI (ex-L1GA TEAM)",
+"swiss": {
+"w4_l0": 0.000871,
+"w4_l1": 0.00617,
+"w4_l2": 0.056809,
+"w2_l4": 0.336769,
+"w1_l4": 0.316977,
+"w0_l4": 0.282404
+},
+"p_champion": 0.001
+},
+{
+"team": "Vici Gaming",
+"swiss": {
+"w4_l0": 0.076269,
+"w4_l1": 0.162783,
+"w4_l2": 0.395393,
+"w2_l4": 0.277989,
+"w1_l4": 0.069028,
+"w0_l4": 0.018538
+},
+"p_champion": 0.07
+},
+{
+"team": "Team Resilience",
+"swiss": {
+"w4_l0": 0.010771,
+"w4_l1": 0.042489,
+"w4_l2": 0.20422,
+"w2_l4": 0.427904,
+"w1_l4": 0.210257,
+"w0_l4": 0.104359
+},
+"p_champion": 0.008
+},
+{
+"team": "OG",
+"swiss": {
+"w4_l0": 0.006807,
+"w4_l1": 0.030183,
+"w4_l2": 0.165216,
+"w2_l4": 0.426219,
+"w1_l4": 0.238503,
+"w0_l4": 0.133072
+},
+"p_champion": 0.006
+},
+{
+"team": "GamerLegion",
+"swiss": {
+"w4_l0": 0.003709,
+"w4_l1": 0.019039,
+"w4_l2": 0.122604,
+"w2_l4": 0.410205,
+"w1_l4": 0.270045,
+"w0_l4": 0.174398
+},
+"p_champion": 0.004
+},
+{
+"team": "LGD Gaming",
+"swiss": {
+"w4_l0": 0.02258,
+"w4_l1": 0.072581,
+"w4_l2": 0.277871,
+"w2_l4": 0.404581,
+"w1_l4": 0.158346,
+"w0_l4": 0.064041
+},
+"p_champion": 0.024
+}
+]
+}

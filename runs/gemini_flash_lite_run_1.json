@@ -1,0 +1,197 @@
+{
+"reasoning": "The 2026 Dota 2 landscape reflects heavy form volatility combined with top-tier consistency from teams like Team Vision (PARIVISION) and BoomBoys, who dominated the Esports World Cup. Team Yandex and Team Falcons also remain strong contenders. Meanwhile, LGD Gaming introduces a high-variance wildcard element with the late addition of Topson as a stand-in following TaiLung's ban. Lower-tier qualifiers like GamerLegion, HULIGANI, and Team Resilience face uphill battles against seasoned tier-1 rosters. Based on recent tournament finishes (EWC, PGL Wallachia, DreamLeague), PARIVISION and BoomBoys lead the favorites for the top undefeated/one-loss Swiss buckets and championship odds, while HULIGANI and GamerLegion project heavily toward early elimination.",
+"teams": [
+{
+"team": "Team Yandex",
+"swiss": {
+"w4_l0": 0.20,
+"w4_l1": 0.30,
+"w4_l2": 0.30,
+"w2_l4": 0.15,
+"w1_l4": 0.04,
+"w0_l4": 0.01
+},
+"p_champion": 0.12
+},
+{
+"team": "BoomBoys",
+"swiss": {
+"w4_l0": 0.25,
+"w4_l1": 0.30,
+"w4_l2": 0.25,
+"w2_l4": 0.15,
+"w1_l4": 0.04,
+"w0_l4": 0.01
+},
+"p_champion": 0.14
+},
+{
+"team": "Team Falcons",
+"swiss": {
+"w4_l0": 0.15,
+"w4_l1": 0.25,
+"w4_l2": 0.35,
+"w2_l4": 0.18,
+"w1_l4": 0.05,
+"w0_l4": 0.02
+},
+"p_champion": 0.10
+},
+{
+"team": "Team Liquid",
+"swiss": {
+"w4_l0": 0.10,
+"w4_l1": 0.20,
+"w4_l2": 0.35,
+"w2_l4": 0.25,
+"w1_l4": 0.08,
+"w0_l4": 0.02
+},
+"p_champion": 0.07
+},
+{
+"team": "1win Team",
+"swiss": {
+"w4_l0": 0.08,
+"w4_l1": 0.15,
+"w4_l2": 0.35,
+"w2_l4": 0.30,
+"w1_l4": 0.09,
+"w0_l4": 0.03
+},
+"p_champion": 0.05
+},
+{
+"team": "Xtreme Gaming",
+"swiss": {
+"w4_l0": 0.05,
+"w4_l1": 0.12,
+"w4_l2": 0.33,
+"w2_l4": 0.35,
+"w1_l4": 0.12,
+"w0_l4": 0.03
+},
+"p_champion": 0.04
+},
+{
+"team": "Aurora Gaming",
+"swiss": {
+"w4_l0": 0.05,
+"w4_l1": 0.10,
+"w4_l2": 0.35,
+"w2_l4": 0.35,
+"w1_l4": 0.12,
+"w0_l4": 0.03
+},
+"p_champion": 0.04
+},
+{
+"team": "Team Vision",
+"swiss": {
+"w4_l0": 0.30,
+"w4_l1": 0.35,
+"w4_l2": 0.20,
+"w2_l4": 0.10,
+"w1_l4": 0.04,
+"w0_l4": 0.01
+},
+"p_champion": 0.20
+},
+{
+"team": "Team Spirit",
+"swiss": {
+"w4_l0": 0.12,
+"w4_l1": 0.20,
+"w4_l2": 0.38,
+"w2_l4": 0.20,
+"w1_l4": 0.07,
+"w0_l4": 0.03
+},
+"p_champion": 0.08
+},
+{
+"team": "Nigma Galaxy",
+"swiss": {
+"w4_l0": 0.05,
+"w4_l1": 0.10,
+"w4_l2": 0.25,
+"w2_l4": 0.40,
+"w1_l4": 0.15,
+"w0_l4": 0.05
+},
+"p_champion": 0.03
+},
+{
+"team": "HULIGANI",
+"swiss": {
+"w4_l0": 0.01,
+"w4_l1": 0.02,
+"w4_l2": 0.07,
+"w2_l4": 0.35,
+"w1_l4": 0.35,
+"w0_l4": 0.20
+},
+"p_champion": 0.005
+},
+{
+"team": "Vici Gaming",
+"swiss": {
+"w4_l0": 0.08,
+"w4_l1": 0.15,
+"w4_l2": 0.35,
+"w2_l4": 0.30,
+"w1_l4": 0.09,
+"w0_l4": 0.03
+},
+"p_champion": 0.05
+},
+{
+"team": "Team Resilience",
+"swiss": {
+"w4_l0": 0.02,
+"w4_l1": 0.05,
+"w4_l2": 0.18,
+"w2_l4": 0.45,
+"w1_l4": 0.20,
+"w0_l4": 0.10
+},
+"p_champion": 0.01
+},
+{
+"team": "OG",
+"swiss": {
+"w4_l0": 0.03,
+"w4_l1": 0.06,
+"w4_l2": 0.21,
+"w2_l4": 0.45,
+"w1_l4": 0.18,
+"w0_l4": 0.07
+},
+"p_champion": 0.015
+},
+{
+"team": "GamerLegion",
+"swiss": {
+"w4_l0": 0.01,
+"w4_l1": 0.03,
+"w4_l2": 0.10,
+"w2_l4": 0.40,
+"w1_l4": 0.30,
+"w0_l4": 0.16
+},
+"p_champion": 0.005
+},
+{
+"team": "LGD Gaming",
+"swiss": {
+"w4_l0": 0.05,
+"w4_l1": 0.10,
+"w4_l2": 0.26,
+"w2_l4": 0.40,
+"w1_l4": 0.14,
+"w0_l4": 0.05
+},
+"p_champion": 0.03
+}
+]
+}
